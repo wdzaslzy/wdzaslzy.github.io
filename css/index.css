@@ -462,7 +462,6 @@ main {
 
 .home-article-wrapper {
   display: block;
-  min-height: 330px;
   margin: 30px 0;
   border-radius: 10px; }
 .home-article-cover {
