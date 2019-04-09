@@ -210,7 +210,15 @@
 <h3 id="ScheduledExecutorService"><a href="#ScheduledExecutorService" class="headerlink" title="ScheduledExecutorService"></a>ScheduledExecutorService</h3><p>是一个调度器，可以指定延迟一段时间后再执行，也可以定期执行。使用后，会新增一个线程来单独执行。            </p>
 <p>常用的方法：<br><strong>schedule</strong>        </p>
 <blockquote>
-<p>该方法表达的是，一段时间后启用一个线程来执行，有两种使用方式，一种是单纯的启用一个线程执行，另一种是具有返回值的线程。<br><strong>scheduleAtFixedRate</strong><br>该方法是表示周期执行。第一次执行后，一段时间再次触发执行。它的时间间隔从触发时开始计算。<br><strong>scheduleWithFixedDelay</strong><br>该方法和scheduleAtFixedRate类似，不同的是，它的间隔时间从上一个任务完全执行完后开始计算。</p>
+<p>该方法表达的是，一段时间后启用一个线程来执行，有两种使用方式，一种是单纯的启用一个线程执行，另一种是具有返回值的线程。    </p>
+</blockquote>
+<p><strong>scheduleAtFixedRate</strong>            </p>
+<blockquote>
+<p>该方法是表示周期执行。第一次执行后，一段时间再次触发执行。它的时间间隔从触发时开始计算。        </p>
+</blockquote>
+<p><strong>scheduleWithFixedDelay</strong>            </p>
+<blockquote>
+<p>该方法和scheduleAtFixedRate类似，不同的是，它的间隔时间从上一个任务完全执行完后开始计算。</p>
 </blockquote>
 <p>几个简单的例子，来看下效果：</p>
 <ol>
