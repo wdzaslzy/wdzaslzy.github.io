@@ -207,6 +207,37 @@
 <p>输出结果：<br>Thread-1被执行，sum 加2<br>Thread-2被执行，sum 加1<br>Thread-4被执行，sum 加1<br>Thread-0被执行，sum 乘3<br>Thread-3被执行，sum 乘4</p>
 </blockquote>
 <p>可以看出，乘法的线程被阻塞，加法的线程优先执行，执行完后，再让乘法的线程执行。<br>CountDownLatch主要功能就是这样，简单一句话：<strong>允许一个或多个线程等待，直到其他线程中的一组操作完成。</strong></p>
+<h3 id="ScheduledExecutorService"><a href="#ScheduledExecutorService" class="headerlink" title="ScheduledExecutorService"></a>ScheduledExecutorService</h3><p>是一个调度器，可以指定延迟一段时间后再执行，也可以定期执行。使用后，会新增一个线程来单独执行。            </p>
+<p>常用的方法：<br><strong>schedule</strong>        </p>
+<blockquote>
+<p>该方法表达的是，一段时间后启用一个线程来执行，有两种使用方式，一种是单纯的启用一个线程执行，另一种是具有返回值的线程。<br><strong>scheduleAtFixedRate</strong><br>该方法是表示周期执行。第一次执行后，一段时间再次触发执行。它的时间间隔从触发时开始计算。<br><strong>scheduleWithFixedDelay</strong><br>该方法和scheduleAtFixedRate类似，不同的是，它的间隔时间从上一个任务完全执行完后开始计算。</p>
+</blockquote>
+<p>几个简单的例子，来看下效果：</p>
+<ol>
+<li>schedule使用<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">ScheduledExecutorService service = Executors.newScheduledThreadPool(<span class="number">1</span>);</span><br><span class="line"><span class="keyword">long</span> start = System.currentTimeMillis();</span><br><span class="line">service.schedule(<span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="keyword">long</span> exe = System.currentTimeMillis();</span><br><span class="line">		System.out.println(exe - start);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;, <span class="number">2</span>, TimeUnit.SECONDS);</span><br><span class="line">service.shutdown();</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<blockquote>
+<p>输出结果：<br>2004</p>
+</blockquote>
+<p>由此可以看出，schedule只是在2秒后开始执行，执行结束后，程序退出，不再循环。</p>
+<ol start="2">
+<li>scheduleAtFixedRate使用<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">ScheduledExecutorService service = Executors.newScheduledThreadPool(<span class="number">1</span>);</span><br><span class="line">DateFormat df = <span class="keyword">new</span> SimpleDateFormat(<span class="string">"yyyy-MM-dd HH:mm:ss"</span>);</span><br><span class="line">service.scheduleAtFixedRate(<span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		System.out.println(df.format(<span class="keyword">new</span> Date()));</span><br><span class="line">		<span class="keyword">try</span> &#123;</span><br><span class="line">			Thread.sleep(<span class="number">2000L</span>);</span><br><span class="line">		&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">			e.printStackTrace();</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;, <span class="number">0</span>, <span class="number">3</span>, TimeUnit.SECONDS);</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<blockquote>
+<p>输出结果：<br>2019-04-09 19:55:12<br>2019-04-09 19:55:15<br>2019-04-09 19:55:18<br>2019-04-09 19:55:21<br>2019-04-09 19:55:24<br>2019-04-09 19:55:27</p>
+</blockquote>
+<p>由此可以看出，每隔3秒执行一次，毫不关心执行中睡眠的2秒钟。</p>
+<ol start="3">
+<li>scheduleWithFixedDelay使用<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">ScheduledExecutorService service = Executors.newScheduledThreadPool(<span class="number">1</span>);</span><br><span class="line">DateFormat df = <span class="keyword">new</span> SimpleDateFormat(<span class="string">"yyyy-MM-dd HH:mm:ss"</span>);</span><br><span class="line">service.scheduleWithFixedDelay(<span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		System.out.println(df.format(<span class="keyword">new</span> Date()));</span><br><span class="line">		<span class="keyword">try</span> &#123;</span><br><span class="line">			Thread.sleep(<span class="number">2000L</span>);</span><br><span class="line">		&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">			e.printStackTrace();</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;, <span class="number">0</span>, <span class="number">3</span>, TimeUnit.SECONDS);</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<blockquote>
+<p>输出结果：<br>2019-04-09 19:58:12<br>2019-04-09 19:58:17<br>2019-04-09 19:58:22<br>2019-04-09 19:58:27</p>
+</blockquote>
+<p>由此可以看出，scheduleWithFixedDelay是在任务执行完成后，开始计时。</p>
+<p><strong>使用场景</strong><br>这段时间在做一个任务调度的功能。线程会轮询扫描等待队列中的任务来执行。如果使用schedule来提交任务，则不能达到轮询的效果。如果使用scheduleAtFixedRate来提交任务，则会出现的一种场景是，前一个线程还没消费完，后面一个线程又从队列中取出来进行消费，会出现重复消费情况。所以，选择scheduleWithFixedDelay。<br>除此之外，还有一些场景，会使用scheduleAtFixedRate。例如一堆循环调度任务，需要每天都执行，即使前一天的任务还没全部执行完，今天也要重复执行。如果选用scheduleWithFixedDelay，会出现断天现象。而使用scheduleAtFixedRate，则能达到每天都执行的效果。<br>每个方法的选择，需要根据实际的场景来选择。</p>
 
   </article>
   <aside class="table-content" id="site-toc">
@@ -215,7 +246,7 @@
     <span>目录</span>
   </div>
   <div class="table-content-main">
-    <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#CountDownLatch"><span class="toc-text">CountDownLatch</span></a></li></ol>
+    <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#CountDownLatch"><span class="toc-text">CountDownLatch</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ScheduledExecutorService"><span class="toc-text">ScheduledExecutorService</span></a></li></ol>
   </div>
 </aside>
   
