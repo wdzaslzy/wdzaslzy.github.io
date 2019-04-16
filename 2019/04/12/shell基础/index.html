@@ -196,117 +196,154 @@
 </blockquote>
 <p>定义好变量后，使用变量时，可以用$加变量名来使用。<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span>!/bin/bash</span><br><span class="line">name="lizy"</span><br><span class="line">age=24</span><br><span class="line">echo "my name is $name age $age"</span><br></pre></td></tr></table></figure></p>
 <p>变量是可以被改变的。一开始定义了变量，在后面的逻辑中，可以对它做更改。<br>变量也是有类型的，上面的例子，就有两种类型，string和int。在脚本中，一般能用的类型，也就是字符串和数字了，其他的几乎不用。字符串可以用单引号也可用双引号。<br>单引号和双引号的区别在于，单引号里面的值都是不能改变的，而双引号里面可以改变。例如上面的$name，就是一个变量，而如果把它换成单引号，则会输出$name，而不是变量值。</p>
-<h4 id="数组"><a href="#数组" class="headerlink" title="数组"></a>数组</h4><p>shell支持一维数组，不支持多维数组。数组的可以创建时定义值，也可以单独定义每个下标的值。<br>
-> array_name={"lizy","yp","syh"}    或     
-> array_name[0]=lizy
-
-数组，可以不使用连续的下标，且数组的长度无限制。使用数组时，和使用变量形式一样。    
-undefined
-
-以上脚本，输出结果为：
-> my first friend is lizy. I have 3 friends, they are lizy yp syh
-
-上面的脚本中，${#names[@]}表示，获取数组中的每一个元素。使用${names[@]}获取每个元素。
-
-#### 参数
-shell脚本是可以传入参数的，就像Java的main函数，是可以传入参数的。shell脚本中，参数的定义是$加数字。1为第一个参数，2为第二个参数，0为文件名。
-
-undefined
-
-执行方式:
-> ./test.sh "lizy" 24
-
-输出为:
-> my name is lizy age 24
-
-参数中，有几个常用的操作。         
-
-操作 | 说明
------ | -----
- $# | 参数的个数
- $* | 把所有的参数转换为字符串
- $@ | 是把所有的参数，单独转换为字符串
-
-$* 和 $@ 的区别
-undefined
-
-执行脚本：
-> ./test.sh 1 2
-
-输出结果为：
-> 1 2   
-> 1   
-> 2
-
-由此可以看出，$* 最终的结果是，一个变量，而$@最终的结果是，多个变量。
-
-#### 运算符
-shell脚本，可以存在一些运算符。shell支持的运算符包括：
-- 算术运算
-- 关系运算
-- 布尔运算
-- 字符串运算
-
-**算术运算**    
-shell支持基本的加减乘除，和一般的编程语言不同的是，shell不支持原生的操作，shell提供了类似方法的命令来实现。如expr命令。使用expr命令时，需要用**`**包起来。如：\`expr 1 + 1\`。而且，在expr中，写表达式时，中间需要用空格隔开。
-undefined
-
-输出结果为：
-> 2   
-1   
-6   
-3   
-
-上面的乘法前面的 \ 是一个转译符号。因为 * 在shell中是一个关键符号。所以需要转译。
-
-**关系运算**    
-关系运算和算术运算一样，也不能直接使用 > = < 来运算，需要由[ ]来协助。在shell中。下面是shell中的运算符。    
-
-运算符 | 说明
------ | -----
--eq | 等于，equal缩写
--ne | 不等，not equal缩写
--gt | 大于，greater than缩写
--lt | 小于, less than缩写
--ge | 大于等于
--le | 小于等于
-
-undefined
-
-输出结果：
-> 1等于1    
-1不等于2
-
-需要注意的是，关系运算只能是数字，不能是字符串。
-
-**布尔运算**
-布尔运算，和前面的都一样，!表示非，最常见的就是和=结合，表示不等。-o表示或(&&)，-a表示与(||)。例如：
-undefined
-
-输出结果：
-> 1不等于2   
-1等于1 且 1不等于2    
-1等与2或2等于2
-
-**字符串运算**
-常用的字符串运算有：
-
-运算符 | 说明
------ | -----
-= | 两字符串值是否相等
-!= | 两字符串值不等
--z | 字符串长度是否为0
--n | 字符串长度是否不为0
-$ | 字符串是否为空
-
-undefined
-
-输出结果：
-> 相等    
-长度不为0   
-为空    
-
-</p>
+<h4 id="数组"><a href="#数组" class="headerlink" title="数组"></a>数组</h4><p>shell支持一维数组，不支持多维数组。数组的可以创建时定义值，也可以单独定义每个下标的值。    </p>
+<blockquote>
+<p>array_name={“lizy”,”yp”,”syh”}    或<br>array_name[0]=lizy</p>
+</blockquote>
+<p>数组，可以不使用连续的下标，且数组的长度无限制。使用数组时，和使用变量形式一样。<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span>!/bin/bash</span><br><span class="line">names=("lizy" "yp" "syh")</span><br><span class="line">echo "my first friend is $&#123;names[0]&#125;. I have $&#123;#names[@]&#125; friends, they are $&#123;names[@]&#125;"</span><br></pre></td></tr></table></figure></p>
+<p>以上脚本，输出结果为：</p>
+<blockquote>
+<p>my first friend is lizy. I have 3 friends, they are lizy yp syh</p>
+</blockquote>
+<p>上面的脚本中，${#names[@]}  表示，获取数组中的每一个元素。使用${names[@]}获取每个元素。</p>
+<h4 id="参数"><a href="#参数" class="headerlink" title="参数"></a>参数</h4><p>shell脚本是可以传入参数的，就像Java的main函数，是可以传入参数的。shell脚本中，参数的定义是$加数字。1为第一个参数，2为第二个参数，0为文件名。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span>!/bin/bash</span><br><span class="line">name=$1</span><br><span class="line">age=$2</span><br><span class="line">echo "my name is $name age $age"</span><br></pre></td></tr></table></figure>
+<p>执行方式:</p>
+<blockquote>
+<p>./test.sh “lizy” 24</p>
+</blockquote>
+<p>输出为:</p>
+<blockquote>
+<p>my name is lizy age 24</p>
+</blockquote>
+<p>参数中，有几个常用的操作。         </p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> $#</td>
+<td>参数的个数</td>
+</tr>
+<tr>
+<td> $*</td>
+<td>把所有的参数转换为字符串</td>
+</tr>
+<tr>
+<td> $@</td>
+<td>是把所有的参数，单独转换为字符串</td>
+</tr>
+</tbody>
+</table>
+<p>$* 和 $@ 的区别<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span>!/bin/bash</span><br><span class="line">a=$1</span><br><span class="line">b=$2</span><br><span class="line">for i in "$*"; do</span><br><span class="line">  echo $i</span><br><span class="line">done</span><br><span class="line"></span><br><span class="line">for i in "$@"; do</span><br><span class="line">  echo $i</span><br><span class="line">done</span><br></pre></td></tr></table></figure></p>
+<p>执行脚本：</p>
+<blockquote>
+<p>./test.sh 1 2</p>
+</blockquote>
+<p>输出结果为：</p>
+<blockquote>
+<p>1 2<br>1<br>2</p>
+</blockquote>
+<p>由此可以看出，$* 最终的结果是，一个变量，而$@最终的结果是，多个变量。</p>
+<h4 id="运算符"><a href="#运算符" class="headerlink" title="运算符"></a>运算符</h4><p>shell脚本，可以存在一些运算符。shell支持的运算符包括：</p>
+<ul>
+<li>算术运算</li>
+<li>关系运算</li>
+<li>布尔运算</li>
+<li>字符串运算</li>
+</ul>
+<p><strong>算术运算</strong><br>shell支持基本的加减乘除，和一般的编程语言不同的是，shell不支持原生的操作，shell提供了类似方法的命令来实现。如expr命令。使用expr命令时，需要用<strong>`</strong>包起来。如：`expr 1 + 1`。而且，在expr中，写表达式时，中间需要用空格隔开。<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span>!/bin/bash</span><br><span class="line">echo `expr 1 + 1`</span><br><span class="line">echo `expr 2 - 1`</span><br><span class="line">echo `expr 2 \* 3`</span><br><span class="line">echo `expr 6 / 2`</span><br></pre></td></tr></table></figure></p>
+<p>输出结果为：</p>
+<blockquote>
+<p>2<br>1<br>6<br>3   </p>
+</blockquote>
+<p>上面的乘法前面的 \ 是一个转译符号。因为 * 在shell中是一个关键符号。所以需要转译。</p>
+<p><strong>关系运算</strong><br>关系运算和算术运算一样，也不能直接使用 &gt; = &lt; 来运算，需要由[ ]来协助。在shell中。下面是shell中的运算符。    </p>
+<table>
+<thead>
+<tr>
+<th>运算符</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-eq</td>
+<td>等于，equal缩写</td>
+</tr>
+<tr>
+<td>-ne</td>
+<td>不等，not equal缩写</td>
+</tr>
+<tr>
+<td>-gt</td>
+<td>大于，greater than缩写</td>
+</tr>
+<tr>
+<td>-lt</td>
+<td>小于, less than缩写</td>
+</tr>
+<tr>
+<td>-ge</td>
+<td>大于等于</td>
+</tr>
+<tr>
+<td>-le</td>
+<td>小于等于</td>
+</tr>
+</tbody>
+</table>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span>!bin/bash</span><br><span class="line">if [[ 1 -eq 1 ]]</span><br><span class="line">  then</span><br><span class="line">    echo "1等于1"</span><br><span class="line">fi</span><br><span class="line"></span><br><span class="line">if [[ 1 -ne 2 ]]</span><br><span class="line"> then</span><br><span class="line">   echo "1不等于2"</span><br><span class="line">fi</span><br></pre></td></tr></table></figure>
+<p>输出结果：</p>
+<blockquote>
+<p>1等于1<br>1不等于2</p>
+</blockquote>
+<p>需要注意的是，关系运算只能是数字，不能是字符串。</p>
+<p><strong>布尔运算</strong><br>布尔运算，和前面的都一样，!表示非，最常见的就是和=结合，表示不等。-o表示或(&amp;&amp;)，-a表示与(||)。例如：<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span>!bin/bash</span><br><span class="line">if [ 1 != 2 ]</span><br><span class="line"> then</span><br><span class="line">   echo "1不等于2"</span><br><span class="line">fi</span><br><span class="line"></span><br><span class="line">if [ 1 -eq 1 -a 1 -ne 2 ]</span><br><span class="line">  then</span><br><span class="line">    echo "1等于1 且 1不等于2"</span><br><span class="line">fi</span><br><span class="line"></span><br><span class="line">if [ 1 -eq 2 -o 2 -eq 2 ]</span><br><span class="line">  then</span><br><span class="line">    echo "1等与2或2等于2"</span><br><span class="line">fi</span><br></pre></td></tr></table></figure></p>
+<p>输出结果：</p>
+<blockquote>
+<p>1不等于2<br>1等于1 且 1不等于2<br>1等与2或2等于2</p>
+</blockquote>
+<p><strong>字符串运算</strong><br>常用的字符串运算有：</p>
+<table>
+<thead>
+<tr>
+<th>运算符</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>=</td>
+<td>两字符串值是否相等</td>
+</tr>
+<tr>
+<td>!=</td>
+<td>两字符串值不等</td>
+</tr>
+<tr>
+<td>-z</td>
+<td>字符串长度是否为0</td>
+</tr>
+<tr>
+<td>-n</td>
+<td>字符串长度是否不为0</td>
+</tr>
+<tr>
+<td>$</td>
+<td>字符串是否为空</td>
+</tr>
+</tbody>
+</table>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span>!bin/bash</span><br><span class="line">name="lizy"</span><br><span class="line">if [ $name = "lizy" ]</span><br><span class="line">  then</span><br><span class="line">    echo "相等"</span><br><span class="line">fi</span><br><span class="line"></span><br><span class="line">if [ -n $name ]</span><br><span class="line">  then</span><br><span class="line">    echo "长度不为0"</span><br><span class="line">fi</span><br><span class="line"></span><br><span class="line">if [ $ $name ]</span><br><span class="line">  then</span><br><span class="line">    echo "为空"</span><br><span class="line">  else</span><br><span class="line">    echo "不为空"</span><br><span class="line">fi</span><br></pre></td></tr></table></figure>
+<p>输出结果：</p>
+<blockquote>
+<p>相等<br>长度不为0<br>为空    </p>
+</blockquote>
 
   </article>
   <aside class="table-content" id="site-toc">
@@ -315,7 +352,7 @@ undefined
     <span>目录</span>
   </div>
   <div class="table-content-main">
-    <ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#简单shell定义及执行"><span class="toc-text">简单shell定义及执行</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#变量"><span class="toc-text">变量</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#数组"><span class="toc-text">数组</span></a></li></ol>
+    <ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#简单shell定义及执行"><span class="toc-text">简单shell定义及执行</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#变量"><span class="toc-text">变量</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#数组"><span class="toc-text">数组</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#参数"><span class="toc-text">参数</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#运算符"><span class="toc-text">运算符</span></a></li></ol>
   </div>
 </aside>
   
