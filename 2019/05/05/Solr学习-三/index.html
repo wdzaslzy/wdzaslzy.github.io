@@ -172,18 +172,24 @@
   </h1>
   
   <article class="passage-article">
-    <p>接上文：<a href="https://wdzaslzy.github.io/2019/04/30/Solr%E5%AD%A6%E4%B9%A0%EF%BC%88%E4%B8%80%EF%BC%89/" target="_blank" rel="noopener">Solr学习（一）</a></p>
-<p>上文主要总结了一下Solr的用途以及简单的使用方式。这儿将详细的总结一下它的一些管理操作。</p>
-<h3 id="Solr控制脚本"><a href="#Solr控制脚本" class="headerlink" title="Solr控制脚本"></a>Solr控制脚本</h3><p>solr的控制脚本，在bin目录下，就是solr。上文了解到了solr的启动和停止方式。现在再介绍一些更详细一点的操作。    </p>
-<h4 id="start参数"><a href="#start参数" class="headerlink" title="start参数"></a>start参数</h4><p>使用.\solr start -help命令，可以看到solr的start有很多参数。捡一些比较重要的参数说明一下。<br><strong>solr start -a “string”</strong><br>-a 参数后面可以指定一些JVM的参数。最长见的就是指定最大内存最小内存等。主要目的是用来优化solr运行。例如：    </p>
+    <p>接上文：<a href="https://wdzaslzy.github.io/2019/04/30/Solr%E5%AD%A6%E4%B9%A0-%E4%BA%8C/" target="_blank" rel="noopener">Solr学习(二)</a></p>
+<p>前面是初步熟悉Solr的使用，对Solr的使用有个大致了解后，我们基本就掌握了Solr的使用方式，接下来就是让Solr更灵活，功能更丰富。<br>Solr就像一个机器人，我们向Solr输入一堆信息，别人向Solr问问题时，Solr能准确回答。我们输入的信息越详细，得到的结果也越准确。我们向Solr输入的信息称为索引，别人向Solr问问题被称为查询。managed-schema是我们向Solr输入信息的介质。<br>solr的基本信息单元是一个document。它描述的是某些东西的一组数据。比如人，一个document可以描述一个人的姓名、年龄、身高、爱好等。<br>document又由多个field组成，document的每一个特征为一个field。字段可以有多种类型，比如姓名用字符类，年龄用int类。<br>了解了Solr的组成成分，我们开始配置schema。</p>
+<h3 id="schema配置详解"><a href="#schema配置详解" class="headerlink" title="schema配置详解"></a>schema配置详解</h3><h4 id="fieldType配置"><a href="#fieldType配置" class="headerlink" title="fieldType配置"></a>fieldType配置</h4><p>fieldType是字段的类型，用于字段指定特定的类型。fieldType的配置格式：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">fieldType</span> <span class="attr">name</span>=<span class="string">"string"</span> <span class="attr">class</span>=<span class="string">"solr.StrField"</span>/&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>这个配置表示：配置了一个名字叫string的类型，它的实际类型是solr.StrField。这个类型是org.apache.solr.schema.StrField的缩写，只能在solr内部的类型才能缩写，如果是第三方外部的类型，需要写全称。solr有许多ClassType，具体类型及用法，参考solrapi。<br>fieldType除了这两个属性之外，还有其他的属性，具有不同的功能。这些属性可以在配置field时单独指定，来覆盖fieldType的属性。fieldType的属性值和field的属性值一致，参考下面field属性。<br>在定义fieldType时，除了定义一些基本的属性外，还可以定义其具体的分词方式、过滤方式。这些具体的定义，在后面分词器、过滤器中介绍。        </p>
+<h4 id="field配置"><a href="#field配置" class="headerlink" title="field配置"></a>field配置</h4><p>field的配置方式：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">field</span> <span class="attr">name</span>=<span class="string">"name"</span> <span class="attr">type</span>=<span class="string">"string"</span> <span class="attr">docValues</span>=<span class="string">"false"</span> <span class="attr">indexed</span>=<span class="string">"true"</span> <span class="attr">stored</span>=<span class="string">"true"</span>/&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>上面是field的配置格式。name是字段名，type是字段类型，就是我们前面定义的fieldType name。<br>下面是field的一些其他重要属性。<br>属性 | 可选值 | solr默认值 | 描述<br>—- | —- | —- | —-<br>indexed | true/false | true | 该属性表示可以被索引。比如输入查询条件：name:lizy，则能查询name字段。如果设置为false，即使有lizy的name，也不会被索引到。<br>stored | true/false | true | 该属性表示是否存储该字段的值。设置为false时不存储值，则在索引的结果后，是看不到该字段的。(后面会介绍indexed和stored配合使用)<br>docValues | true/false | false | 是否用该字段构建一个新的结构，用于一些聚合操作。开启后，对于一些聚合操作会变得高效。<br>sortMissingFirst <br> sortMissingLast | true/false | false | 应用于排序字段，排序字段不存在时，控制文档位置<br>multiValued | true/false | false | 为true时，表示这个字段具有多个值。一般用于copy字段<br>required | true/false | false | 必须的，如果添加一条记录该字段无值，则会报错<br>default | <em> | </em> | 默认值<br>… | | | 其他</p>
+<p><strong>indexed与stored</strong><br>通常，indexed与stored配合使用。indexed表示该字段是否被索引，stored表示该字段是否被存储，被存储的字段，在查询时才能显示。<br>一般，某个字段需要被搜索，但是不用做展示时，我们会将indexed定义为true，stored定义为false。不存储可以节约资源并提高效率。<br>某个字段需要展示，但不需要索引时，将indexed设置为false，将stored设置为true。<br>举个例子：        </p>
 <blockquote>
-<p>.\solr start -a “-Xms1024m”</p>
+<p>有许多企业相关的数据，我们要通过企业名或者企业的高管名模糊找到这个企业的详细信息。<br>对于这样的一个需求。如果把企业的全部信息都放在Solr里面，会让Solr变得很慢。我们可以将它的所有信息放在HBase，而Solr里面只存储HBase的rowkey。这样，搜索流程就是，在solr里通过企业名称或高管名字找到rowkey，再用找到的rowkey从HBase里面取详细数据。<br>所以，我们的索引字段有：rowkey,company_name,company_core_person_name，其中，rowkey是被查出来使用的，但不会被索引，所以，rowkey字段，indexed为false，stored为true，而其他的两个字段，均是被用来索引的，但不使用，所以其余的两个字段，indexed为true，stored为false。        </p>
 </blockquote>
-<p><strong>solr start -c</strong><br>-c 表示以SolrCloud的模式启动solr。在集群环境，需要连接到zookeeper。单纯使用-c，zookeeper会启用solr自带的zk。一般在集群环境，zookeeper是已经搭建好的，所以此处不需要solr带的zk，在-c后面增加-z即可。我的需求，就是使用SolrCloud模式。例如：    </p>
-<blockquote>
-<p>.\solr start -c -z zkServer1:2181,zkServer2:2181</p>
-</blockquote>
-<p><strong>solr start -</strong></p>
+<p><strong>docValues</strong><br>使用docValues时，在建立索引时，会额外建立一个有序的映射，它会提高一些聚合操作的效率。<br>solr的索引实现方式是倒排索引，通过一个关键词找到id，再找到对应的值，这个就是倒排索引。如果你不是很了解，可以找一些资料了解一下。倒排索引能很快找到数据，但是它本身也是有缺陷的。即：如果对某个字段做分组操作时，需要先遍历所有的数据再进行分组。全部遍历效率本身就低，再加上如果数据特别大的话，容易造成内存溢出。而使用docValues时，会在建立索引时，对该字段额外建立一个已经排好序的文档到字段级别的列式存储映射，它会减轻排序、聚合操作时对内存的依赖，提高效率。<br>一般下面几种情况会用到docValues：        </p>
+<ol>
+<li>需要聚合的字段，如count、group by        </li>
+<li>需要提供函数查询的字段        </li>
+</ol>
+<p><strong>multiValued</strong><br>多值字段，表示该字段可以有多个值。比如上面的例子，一个公司可能有多个高管，company_core_person_name可能有多个，于是可以把它定义为多值字段。在导入数据时，传入一个list即可。<br>除此之外，还用于copy字段。还是上面的例子，因为需要根据企业名、高管名来查询。所以我们可以定义一个search_field，该字段是一个多值字段。它是从company_name、company_core_person_name拷贝而来。        </p>
+<p>copyField的配置方式：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">field</span> <span class="attr">name</span>=<span class="string">"name"</span> <span class="attr">type</span>=<span class="string">"string"</span> <span class="attr">docValues</span>=<span class="string">"false"</span> <span class="attr">indexed</span>=<span class="string">"true"</span> <span class="attr">stored</span>=<span class="string">"true"</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">field</span> <span class="attr">name</span>=<span class="string">"copy_name"</span> <span class="attr">type</span>=<span class="string">"string"</span> <span class="attr">docValues</span>=<span class="string">"false"</span> <span class="attr">indexed</span>=<span class="string">"true"</span> <span class="attr">stored</span>=<span class="string">"true"</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">copyField</span> <span class="attr">source</span>=<span class="string">"name"</span> <span class="attr">dest</span>=<span class="string">"copy_name"</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>上面的配置表示，将name拷贝到copy_name。</p>
 
   </article>
   <aside class="table-content" id="site-toc">
@@ -192,7 +198,7 @@
     <span>目录</span>
   </div>
   <div class="table-content-main">
-    <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Solr控制脚本"><span class="toc-text">Solr控制脚本</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#start参数"><span class="toc-text">start参数</span></a></li></ol></li></ol>
+    <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#schema配置详解"><span class="toc-text">schema配置详解</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#fieldType配置"><span class="toc-text">fieldType配置</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#field配置"><span class="toc-text">field配置</span></a></li></ol></li></ol>
   </div>
 </aside>
   
