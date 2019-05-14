@@ -176,21 +176,94 @@
 <p>前面是初步熟悉Solr的使用，对Solr的使用有个大致了解后，我们基本就掌握了Solr的使用方式，接下来就是让Solr更灵活，功能更丰富。<br>Solr就像一个机器人，我们向Solr输入一堆信息，别人向Solr问问题时，Solr能准确回答。我们输入的信息越详细，得到的结果也越准确。我们向Solr输入的信息称为索引，别人向Solr问问题被称为查询。managed-schema是我们向Solr输入信息的介质。<br>solr的基本信息单元是一个document。它描述的是某些东西的一组数据。比如人，一个document可以描述一个人的姓名、年龄、身高、爱好等。<br>document又由多个field组成，document的每一个特征为一个field。字段可以有多种类型，比如姓名用字符类，年龄用int类。<br>了解了Solr的组成成分，我们开始配置schema。</p>
 <h3 id="schema配置详解"><a href="#schema配置详解" class="headerlink" title="schema配置详解"></a>schema配置详解</h3><h4 id="fieldType配置"><a href="#fieldType配置" class="headerlink" title="fieldType配置"></a>fieldType配置</h4><p>fieldType是字段的类型，用于字段指定特定的类型。fieldType的配置格式：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">fieldType</span> <span class="attr">name</span>=<span class="string">"string"</span> <span class="attr">class</span>=<span class="string">"solr.StrField"</span>/&gt;</span></span><br></pre></td></tr></table></figure></p>
 <p>这个配置表示：配置了一个名字叫string的类型，它的实际类型是solr.StrField。这个类型是org.apache.solr.schema.StrField的缩写，只能在solr内部的类型才能缩写，如果是第三方外部的类型，需要写全称。solr有许多ClassType，具体类型及用法，参考solrapi。<br>fieldType除了这两个属性之外，还有其他的属性，具有不同的功能。这些属性可以在配置field时单独指定，来覆盖fieldType的属性。fieldType的属性值和field的属性值一致，参考下面field属性。<br>在定义fieldType时，除了定义一些基本的属性外，还可以定义其具体的分词方式、过滤方式。这些具体的定义，在后面分词器、过滤器中介绍。        </p>
-<h4 id="field配置"><a href="#field配置" class="headerlink" title="field配置"></a>field配置</h4><p>field的配置方式：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">field</span> <span class="attr">name</span>=<span class="string">"name"</span> <span class="attr">type</span>=<span class="string">"string"</span> <span class="attr">docValues</span>=<span class="string">"false"</span> <span class="attr">indexed</span>=<span class="string">"true"</span> <span class="attr">stored</span>=<span class="string">"true"</span>/&gt;</span></span><br></pre></td></tr></table></figure></p>
-<p>上面是field的配置格式。name是字段名，type是字段类型，就是我们前面定义的fieldType name。<br>下面是field的一些其他重要属性。<br>属性 | 可选值 | solr默认值 | 描述<br>—- | —- | —- | —-<br>indexed | true/false | true | 该属性表示可以被索引。比如输入查询条件：name:lizy，则能查询name字段。如果设置为false，即使有lizy的name，也不会被索引到。<br>stored | true/false | true | 该属性表示是否存储该字段的值。设置为false时不存储值，则在索引的结果后，是看不到该字段的。(后面会介绍indexed和stored配合使用)<br>docValues | true/false | false | 是否用该字段构建一个新的结构，用于一些聚合操作。开启后，对于一些聚合操作会变得高效。<br>sortMissingFirst <br> sortMissingLast | true/false | false | 应用于排序字段，排序字段不存在时，控制文档位置<br>multiValued | true/false | false | 为true时，表示这个字段具有多个值。一般用于copy字段<br>required | true/false | false | 必须的，如果添加一条记录该字段无值，则会报错<br>default | <em> | </em> | 默认值<br>… | | | 其他</p>
+<h4 id="field配置"><a href="#field配置" class="headerlink" title="field配置"></a>field配置</h4><h5 id="field的配置方式："><a href="#field的配置方式：" class="headerlink" title="field的配置方式："></a>field的配置方式：</h5><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">field</span> <span class="attr">name</span>=<span class="string">"name"</span> <span class="attr">type</span>=<span class="string">"string"</span> <span class="attr">docValues</span>=<span class="string">"false"</span> <span class="attr">indexed</span>=<span class="string">"true"</span> <span class="attr">stored</span>=<span class="string">"true"</span>/&gt;</span></span><br></pre></td></tr></table></figure>
+<p>上面是field的配置格式。name是字段名，type是字段类型，就是我们前面定义的fieldType name。<br>下面是field的一些其他重要属性。        </p>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>可选值</th>
+<th>solr默认值</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>indexed</td>
+<td>true/false</td>
+<td>true</td>
+<td>该属性表示可以被索引。比如输入查询条件：name:lizy，则能查询name字段。如果设置为false，即使有lizy的name，也不会被索引到。</td>
+</tr>
+<tr>
+<td>stored</td>
+<td>true/false</td>
+<td>true</td>
+<td>该属性表示是否存储该字段的值。设置为false时不存储值，则在索引的结果后，是看不到该字段的。(后面会介绍indexed和stored配合使用)</td>
+</tr>
+<tr>
+<td>docValues</td>
+<td>true/false</td>
+<td>false</td>
+<td>是否用该字段构建一个新的结构，用于一些聚合操作。开启后，对于一些聚合操作会变得高效。</td>
+</tr>
+<tr>
+<td>sortMissingFirst <br> sortMissingLast</td>
+<td>true/false</td>
+<td>false</td>
+<td>应用于排序字段，排序字段不存在时，控制文档位置</td>
+</tr>
+<tr>
+<td>multiValued</td>
+<td>true/false</td>
+<td>false</td>
+<td>为true时，表示这个字段具有多个值。一般用于copy字段</td>
+</tr>
+<tr>
+<td>required</td>
+<td>true/false</td>
+<td>false</td>
+<td>必须的，如果添加一条记录该字段无值，则会报错</td>
+</tr>
+<tr>
+<td>default</td>
+<td>*</td>
+<td>*</td>
+<td>默认值</td>
+</tr>
+<tr>
+<td>…</td>
+<td></td>
+<td></td>
+<td>其他</td>
+</tr>
+</tbody>
+</table>
 <p><strong>indexed与stored</strong><br>通常，indexed与stored配合使用。indexed表示该字段是否被索引，stored表示该字段是否被存储，被存储的字段，在查询时才能显示。<br>一般，某个字段需要被搜索，但是不用做展示时，我们会将indexed定义为true，stored定义为false。不存储可以节约资源并提高效率。<br>某个字段需要展示，但不需要索引时，将indexed设置为false，将stored设置为true。<br>举个例子：        </p>
 <blockquote>
-<p>有许多企业相关的数据，我们要通过企业名或者企业的高管名模糊找到这个企业的详细信息。<br>对于这样的一个需求。如果把企业的全部信息都放在Solr里面，会让Solr变得很慢。我们可以将它的所有信息放在HBase，而Solr里面只存储HBase的rowkey。这样，搜索流程就是，在solr里通过企业名称或高管名字找到rowkey，再用找到的rowkey从HBase里面取详细数据。<br>所以，我们的索引字段有：rowkey,company_name,company_core_person_name，其中，rowkey是被查出来使用的，但不会被索引，所以，rowkey字段，indexed为false，stored为true，而其他的两个字段，均是被用来索引的，但不使用，所以其余的两个字段，indexed为true，stored为false。        </p>
+<p>有许多企业相关的数据，我们要通过企业名或者企业的高管名模糊找到这个企业的详细信息。    </p>
 </blockquote>
+<p>对于这样的一个需求。如果把企业的全部信息都放在Solr里面，会让Solr变得很慢。我们可以将它的所有信息放在HBase，而Solr里面只存储HBase的rowkey。这样，搜索流程就是，在solr里通过企业名称或高管名字找到rowkey，再用找到的rowkey从HBase里面取详细数据。<br>所以，我们的索引字段有：rowkey,company_name,company_core_person_name，其中，rowkey是被查出来使用的，但不会被索引，所以，rowkey字段，indexed为false，stored为true，而其他的两个字段，均是被用来索引的，但不使用，所以其余的两个字段，indexed为true，stored为false。        </p>
 <p><strong>docValues</strong><br>使用docValues时，在建立索引时，会额外建立一个有序的映射，它会提高一些聚合操作的效率。<br>solr的索引实现方式是倒排索引，通过一个关键词找到id，再找到对应的值，这个就是倒排索引。如果你不是很了解，可以找一些资料了解一下。倒排索引能很快找到数据，但是它本身也是有缺陷的。即：如果对某个字段做分组操作时，需要先遍历所有的数据再进行分组。全部遍历效率本身就低，再加上如果数据特别大的话，容易造成内存溢出。而使用docValues时，会在建立索引时，对该字段额外建立一个已经排好序的文档到字段级别的列式存储映射，它会减轻排序、聚合操作时对内存的依赖，提高效率。<br>一般下面几种情况会用到docValues：        </p>
 <ol>
 <li>需要聚合的字段，如count、group by        </li>
 <li>需要提供函数查询的字段        </li>
 </ol>
 <p><strong>multiValued</strong><br>多值字段，表示该字段可以有多个值。比如上面的例子，一个公司可能有多个高管，company_core_person_name可能有多个，于是可以把它定义为多值字段。在导入数据时，传入一个list即可。<br>除此之外，还用于copy字段。还是上面的例子，因为需要根据企业名、高管名来查询。所以我们可以定义一个search_field，该字段是一个多值字段。它是从company_name、company_core_person_name拷贝而来。        </p>
-<p>copyField的配置方式：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">field</span> <span class="attr">name</span>=<span class="string">"name"</span> <span class="attr">type</span>=<span class="string">"string"</span> <span class="attr">docValues</span>=<span class="string">"false"</span> <span class="attr">indexed</span>=<span class="string">"true"</span> <span class="attr">stored</span>=<span class="string">"true"</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">field</span> <span class="attr">name</span>=<span class="string">"copy_name"</span> <span class="attr">type</span>=<span class="string">"string"</span> <span class="attr">docValues</span>=<span class="string">"false"</span> <span class="attr">indexed</span>=<span class="string">"true"</span> <span class="attr">stored</span>=<span class="string">"true"</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">copyField</span> <span class="attr">source</span>=<span class="string">"name"</span> <span class="attr">dest</span>=<span class="string">"copy_name"</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
-<p>上面的配置表示，将name拷贝到copy_name。</p>
-
+<h5 id="copyField的配置方式："><a href="#copyField的配置方式：" class="headerlink" title="copyField的配置方式："></a>copyField的配置方式：</h5><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">field</span> <span class="attr">name</span>=<span class="string">"name"</span> <span class="attr">type</span>=<span class="string">"string"</span> <span class="attr">docValues</span>=<span class="string">"false"</span> <span class="attr">indexed</span>=<span class="string">"true"</span> <span class="attr">stored</span>=<span class="string">"true"</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">field</span> <span class="attr">name</span>=<span class="string">"copy_name"</span> <span class="attr">type</span>=<span class="string">"string"</span> <span class="attr">docValues</span>=<span class="string">"false"</span> <span class="attr">indexed</span>=<span class="string">"true"</span> <span class="attr">stored</span>=<span class="string">"true"</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">copyField</span> <span class="attr">source</span>=<span class="string">"name"</span> <span class="attr">dest</span>=<span class="string">"copy_name"</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>上面的配置表示，将name拷贝到copy_name字段。一个source可以对应多个dest。copy属性没有传递性，也就是说，name到copy_name，copy_name到other，other不具有name的值。</p>
+<h5 id="dynamicField配置"><a href="#dynamicField配置" class="headerlink" title="dynamicField配置"></a>dynamicField配置</h5><p>动态字段表示在你没有明确定义字段时来使用。它和一般的字段完全相似，不同的是它可以使用通配符来定义字段名。比如定义一个<em>_test的动态字段，在使用搜索时，如果输入cat_test，它会自动匹配到</em>_test这个字段上去索引。动态字段的配置方式：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dynamicField</span> <span class="attr">name</span>=<span class="string">"*_test"</span> <span class="attr">type</span>=<span class="string">"int"</span> <span class="attr">indexed</span>=<span class="string">"true"</span>  <span class="attr">stored</span>=<span class="string">"true"</span>/&gt;</span></span><br></pre></td></tr></table></figure></p>
+<h5 id="其他配置"><a href="#其他配置" class="headerlink" title="其他配置"></a>其他配置</h5><p>除了上面几种配置外，schema中还存在其他的配置。<br><strong>唯一键</strong><br>唯一建是表示通过它可以查询到某个唯一的document。它的作用是在后面更改索引数据时，可以使用唯一键来更改。唯一键在scheam配置中不是必须的。配置方式如下：        </p>
+<blockquote>
+<uniquekey>id</uniquekey>
+</blockquote>
+<p>需要注意的是，具有默认值和copy字段不能作为唯一键。原因很简单，具有默认值和拷贝字段都具有可重复性，而唯一键是不重复的。<br>除此之外，唯一键字段，不能使用*PointField类型，类型里面不能具有分词方式。<br>举个例子：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">fieldType</span> <span class="attr">name</span>=<span class="string">"pdouble"</span> <span class="attr">class</span>=<span class="string">"solr.DoublePointField"</span> <span class="attr">docValues</span>=<span class="string">"true"</span>/&gt;</span>		</span><br><span class="line">或		</span><br><span class="line"><span class="tag">&lt;<span class="name">fieldType</span> <span class="attr">name</span>=<span class="string">"text_bg"</span> <span class="attr">class</span>=<span class="string">"solr.TextField"</span> <span class="attr">positionIncrementGap</span>=<span class="string">"100"</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">analyzer</span>&gt;</span></span><br><span class="line">	  <span class="tag">&lt;<span class="name">tokenizer</span> <span class="attr">class</span>=<span class="string">"solr.StandardTokenizerFactory"</span>/&gt;</span></span><br><span class="line">	  <span class="tag">&lt;<span class="name">filter</span> <span class="attr">class</span>=<span class="string">"solr.LowerCaseFilterFactory"</span>/&gt;</span></span><br><span class="line">	  <span class="tag">&lt;<span class="name">filter</span> <span class="attr">class</span>=<span class="string">"solr.StopFilterFactory"</span> <span class="attr">words</span>=<span class="string">"lang/stopwords_bg.txt"</span> <span class="attr">ignoreCase</span>=<span class="string">"true"</span>/&gt;</span></span><br><span class="line">	  <span class="tag">&lt;<span class="name">filter</span> <span class="attr">class</span>=<span class="string">"solr.BulgarianStemFilterFactory"</span>/&gt;</span></span><br><span class="line">	<span class="tag">&lt;/<span class="name">analyzer</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">fieldType</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>如果某个字段的类型使用了pdouble或者text_bg，则该字段也不能被作为唯一键。（具体原因目前我还没了解）        </p>
+<h4 id="分词器"><a href="#分词器" class="headerlink" title="分词器"></a>分词器</h4><p>上面是字段的配置。如果您已经配置好了一个对于一个文本搜索的字段，您可以在SolrAdmin中去尝试使用一下。例如您的文本为：Hello, my name is lizy.I come from China. 如果您想搜索某个人，但是忘了他叫什么，您可能会搜：my name is关键词，希望找到想要搜索的人。但是返回的结果您可能会发现，它会展示许多文档，这些文档中有my、有name、有is。就是很少有my name is同时出现的。如果您想只得到都包含my name is的文档，您可以尝试修改分词器。<br>分词器被指定在fieldType中。是fieldType的一个子元素，一般情况下，只有solr.TextField类型的字段会指定分词器。<br>分词器的定义方式：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">fieldType</span> <span class="attr">name</span>=<span class="string">"nametext"</span> <span class="attr">class</span>=<span class="string">"solr.TextField"</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">analyzer</span> <span class="attr">class</span>=<span class="string">"org.apache.lucene.analysis.core.WhitespaceAnalyzer"</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">fieldType</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>analyzer里面的class类，是对应的分词方式实现类。<br>分词发生在两个阶段，第一阶段是创建索引的时候，会根据分词方式来建立对应的倒排索引。第二阶段是在查询时候，将用户输入的关键词进行分词，查询分词后的结果出现的位置。<br>举个例子：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Hello,大家好，我是一枚来自上海的菜鸟程序员。欢迎大家多多指教。</span><br></pre></td></tr></table></figure></p>
+<p>如果您的文本信息是上面这段话，您在建立索引时，对应的分词器可能会这样分词：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Hello | 大家 | 好 | 我 | 是 | 一枚 | 。。。</span><br></pre></td></tr></table></figure></p>
+<p>这是向Solr导入数据时，Solr分好的词，放在了索引里面。当您查询某个关键词时，比如您输入：一枚程序员，Solr会将一枚再进行分词，会分成：一枚、程序员。然后同时检索所有含有一枚或程序员的文档。<br>将分词分为两个阶段，意味着，我们在不同的阶段可以配置不同的分词方式。配置方式如下：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">fieldType</span> <span class="attr">name</span>=<span class="string">"text_ik"</span> <span class="attr">class</span>=<span class="string">"solr.TextField"</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">analyzer</span> <span class="attr">type</span>=<span class="string">"index"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">tokenizer</span> <span class="attr">class</span>=<span class="string">"org.wltea.analyzer.lucene.IKTokenizerFactory"</span> <span class="attr">conf</span>=<span class="string">"ik.conf"</span> <span class="attr">useSmart</span>=<span class="string">"false"</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">filter</span> <span class="attr">class</span>=<span class="string">"solr.LowerCaseFilterFactory"</span>/&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">analyzer</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">analyzer</span> <span class="attr">type</span>=<span class="string">"query"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">tokenizer</span> <span class="attr">class</span>=<span class="string">"org.wltea.analyzer.lucene.IKTokenizerFactory"</span> <span class="attr">conf</span>=<span class="string">"ik.conf"</span> <span class="attr">useSmart</span>=<span class="string">"true"</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">filter</span> <span class="attr">class</span>=<span class="string">"solr.LowerCaseFilterFactory"</span>/&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">analyzer</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">fieldType</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>一般情况下，索引的分词方式和查询时的分词方式是一致的。如有差异的地方，可以分开配置，如果完全相同，则只配一个即可。        </p>
+<h4 id="过滤器"><a href="#过滤器" class="headerlink" title="过滤器"></a>过滤器</h4>
   </article>
   <aside class="table-content" id="site-toc">
   <div class="table-content-title">
@@ -198,7 +271,7 @@
     <span>目录</span>
   </div>
   <div class="table-content-main">
-    <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#schema配置详解"><span class="toc-text">schema配置详解</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#fieldType配置"><span class="toc-text">fieldType配置</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#field配置"><span class="toc-text">field配置</span></a></li></ol></li></ol>
+    <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#schema配置详解"><span class="toc-text">schema配置详解</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#fieldType配置"><span class="toc-text">fieldType配置</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#field配置"><span class="toc-text">field配置</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#field的配置方式："><span class="toc-text">field的配置方式：</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#copyField的配置方式："><span class="toc-text">copyField的配置方式：</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#dynamicField配置"><span class="toc-text">dynamicField配置</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#其他配置"><span class="toc-text">其他配置</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#分词器"><span class="toc-text">分词器</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#过滤器"><span class="toc-text">过滤器</span></a></li></ol></li></ol>
   </div>
 </aside>
   
