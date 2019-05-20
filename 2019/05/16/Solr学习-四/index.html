@@ -6,12 +6,12 @@
   <meta name="author" content="Dong Yuanxin">
   
   
-  <title>归档: 2019/3 | Belief</title>
+  <title>Solr学习(四) | Belief</title>
 
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
   
-    <meta name="keywords" content="Hexo, Theme-AD">
+    <meta name="keywords" content="搜索引擎,solr,">
   
 
   
@@ -40,7 +40,7 @@
     welcome: {"enable":true,"interval":30},
     start_time: "2018-02-10",
     passwords: ["efe07af7441da2b69c4a41e42e73be4db47f66010a56900788a458354a7373ec", ],
-    is_post: false,
+    is_post: true,
     lock: false,
     author: "Dong Yuanxin",
     share: {"twitter":true,"facebook":true,"weibo":true,"qq":true,"wechat":true},
@@ -150,25 +150,101 @@
 </nav>
 <div id="site-process"></div>
     <main>
-      <div class="timeline">
-  <h2 class="timeline-title">归档: 8篇</h2>
+      
+  <div class="passage">
+  <div class="passage-meta">
+    <span>
+      <i class="fa fa-calendar"></i>2019-05-16
+    </span>
+    
+      <span>
+        | <a href="/categories/搜索引擎/"><i class="fa fa-bookmark"></i>搜索引擎</a>
+      </span>
+    
+    
+      <span>
+        | <i class="fa fa-unlock-alt"></i>UNLOCK
+      </span>
+    
+  </div>
+  <h1 class="passage-title">
+    Solr学习(四)
+  </h1>
   
+  <article class="passage-article">
+    <p>SolrCloud集群，操作过程</p>
+<p><strong>1. 生成本地config</strong>        </p>
+<blockquote>
+<p>solrctl instancedir –generate /lizy/company/test_config</p>
+</blockquote>
+<p>最后一个参数是生成的文件放在本地哪个文件夹下，配置名叫什么。</p>
+<p><strong>2. 编辑本地config</strong><br>按项目需求，编辑schema文件</p>
+<p><strong>3. 上传到zk</strong>        </p>
+<blockquote>
+<p>solrtcl instancedir –create test_config /lizy/company/test_config</p>
+</blockquote>
+<p>第二个参数是zk集群上，config的名称，第三个参数是您刚在本地生成的config文件</p>
+<p><strong>4. 创建collection</strong>        </p>
+<blockquote>
+<p>solrtcl collection –create test_collection -s 3 -r 3 -m 3 -c test_config</p>
+</blockquote>
+<p>–create后面跟的是collection的名字<br>-s 3表示有3个碎片。s即为：shard<br>-r 3表示每个碎片有3个副本。r即为：replicationFactor<br>-m 3表示每个节点最大的分片数，默认为1。m即为：maxShardsPerNode<br>-c xxx表示当前collection使用哪个配置。我们就用刚刚上传好的配置。<br>碎片和副本的乘积表示节点中有多少个core(单节点的solr的核)。如果您的集群节点只有3个节点，那么您必须要重新设定每个节点的最大分片数，即-m参数。要必须保证core的数量必须小于节点最大可容纳的碎片。即-s <em> -r &lt;= -m </em> nodeCount</p>
+<p><strong>5. 向Solr导入数据</strong></p>
+<p><strong>6. 删除collection</strong>        </p>
+<blockquote>
+<p>solrtcl collection –delete test_collection    </p>
+</blockquote>
+<p>删除某个测试集合。</p>
+<p><strong>7. 删除所有索引数据</strong>        </p>
+<blockquote>
+<p>solrtcl collection –deletedocs test_collection</p>
+</blockquote>
+<p>如果您导错数据，该命令，会让您删除所有已经存在的document</p>
+
+  </article>
+  <aside class="table-content" id="site-toc">
+  <div class="table-content-title">
+    <i class="fa fa-arrow-right fa-lg" id="site-toc-hide-btn"></i>
+    <span>目录</span>
+  </div>
+  <div class="table-content-main">
     
-      <h3 class="timeline-subtitle">2019</h3>
-    
-    <div class="timeline-item">
-      <time>2019-03-25</time>
-      <a target="_self" href="/2019/03/25/我的第一篇博客/">我的第一篇博客</a>
-    </div>
+  </div>
+</aside>
   
+    <aside class="passage-copyright">
+      <div>本文作者: 李忠友</div>
+      
+        <div>
+          原文链接: 
+          <a href target="_blank">http://yoursite.com/2019/05/16/Solr学习-四/</a>
+        </div>
+      
+      <div>
+        版权声明: 本博客所有文章除特别声明外, 禁止转载, 转载请注明出处!
+      </div>
+    </aside>
+  
+  
+    <div class="passage-tags">
+     
+      <a href="/tags/solr/"><i class="fa fa-tags"></i>solr</a>
     
-    <div class="timeline-item">
-      <time>2019-03-25</time>
-      <a target="_self" href="/2019/03/25/hello-world/">Hello World</a>
     </div>
   
 </div>
+
     </main>
+    
+      
+<div class="site-comment-contanier" data-plateform="leancloud">
+  
+    <p id="site-comment-info">
+      <i class="fa fa-spinner fa-spin"></i> 评论加载中
+    </p>
+    <div id="site-comment"></div>
+  
+</div>
     
     <div class="site-footer-wrapper">
 </div>
@@ -211,16 +287,16 @@
     <a href="javascript:void(0);" data-enable="false">
       <i class="fa fa-arrow-left"></i>
     </a>
-    <a href="javascript:void(0);" data-enable="false">
+    <a href="/2019/05/05/Solr学习-三/" data-enable="true">
       <i class="fa fa-arrow-right"></i>
     </a>
   </div>
   <div class="bottom-bar-right">
-    <a href="javascript:void(0);" data-enable="false" id="site-toc-show-btn">
+    <a href="javascript:void(0);" data-enable="true" id="site-toc-show-btn">
       <i class="fa fa-bars"></i>
     </a>
     
-      <a href="javascript:void(0);" data-enable="false">
+      <a href="#site-comment" data-enable="true">
         <i class="fa fa-commenting"></i>
       </a>
     
