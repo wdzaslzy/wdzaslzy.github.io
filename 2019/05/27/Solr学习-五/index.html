@@ -214,7 +214,7 @@
 <p>curl –user solr:SolrRocks <a href="http://localhost:8983/api/cluster/security/authentication" target="_blank" rel="noopener">http://localhost:8983/api/cluster/security/authentication</a> -H ‘Content-type:application/json’ -d  ‘{“set-property”: {“blockUnknown”:false}}’</p>
 </blockquote>
 <p>在客户端使用代码进行查询时，您可以通过下面的方式来设置：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">QueryRequest req = <span class="keyword">new</span> QueryRequest(<span class="keyword">new</span> SolrQuery(<span class="string">"*:*"</span>));</span><br><span class="line">req.setBasicAuthCredentials(userName, password);</span><br><span class="line">QueryResponse rsp = req.process(solrClient);</span><br></pre></td></tr></table></figure></p>
-<p>上面是对用户的操作，下面介绍一下给用户分配权限。<br>给用户授权，也是单独的插件，您可以和任意的身份验证插件一起使用。上面我们使用的是RuleBasedAuthorizationPlugin，它在permissions可以设置权限规则，它具有以下规则：        </p>
+<p><strong>规则设定</strong><br>上面是对用户的操作，下面介绍一下给用户分配权限。<br>给用户授权，也是单独的插件，您可以和任意的身份验证插件一起使用。上面我们使用的是RuleBasedAuthorizationPlugin，它在permissions可以设置权限规则，以下是Solr预定义的规则：        </p>
 <ul>
 <li>security-edit 具有安全编辑权限。也就是说，该权限可以控制您是否能够修改 security.json 文件</li>
 <li>security-read 具有读security.json权限。</li>
@@ -230,7 +230,32 @@
 <li>read 改权限对所有的collections只有查询等权限。</li>
 <li>all</li>
 </ul>
-<p>提示：<br>您可以定义某个规则给整个Solr使用，也可以定义某个规则，给单独的Collection来使用。</p>
+<p>提示：<br>您可以定义某个规则给整个Solr使用，也可以定义某个规则，给单独的Collection来使用。如果您想更细粒度的控制权限，您可以自定义权限规则。下面是自定义权限规则的方法。        </p>
+<p>set-permission:<br>update-permission:<br>delete-permission:</p>
+<ul>
+<li>name 指定权限，如上面几种(只有设置预定义权限时使用，预定义权限不可更改)</li>
+<li>collection 可以指定为单独的某个collection才具有的</li>
+<li>path 进行某项请求时才具有的权限，比如update</li>
+<li>method 请求方式</li>
+<li>params 请求参数的名称和值。例如：”action”:[“LIST”, “CREATE”]</li>
+<li>role 规则名称</li>
+</ul>
+<p>示例：<br>创建规则        </p>
+<blockquote>
+<p>curl –user solr:SolrRocks -H ‘Content-type:application/json’ -d ‘{<br>  “set-permission”: {“collection”: null,<br>                     “path”:”/admin/collections”,<br>                     “params”:{“action”:[“LIST”, “CREATE”]},<br>                     “before”: 3,<br>                     “role”: “admin”}<br>}’ <a href="http://localhost:8983/solr/admin/authorization" target="_blank" rel="noopener">http://localhost:8983/solr/admin/authorization</a>        </p>
+</blockquote>
+<p>更新规则        </p>
+<blockquote>
+<p>curl –user solr:SolrRocks -H ‘Content-type:application/json’ -d ‘{<br>  “update-permission”: {“index”: 3,<br>                       “role”: [“admin”, “dev”]}<br>}’ <a href="http://localhost:8983/solr/admin/authorization" target="_blank" rel="noopener">http://localhost:8983/solr/admin/authorization</a>        </p>
+</blockquote>
+<p>删除规则</p>
+<blockquote>
+<p>curl –user solr:SolrRocks -H ‘Content-type:application/json’ -d ‘{<br>  “delete-permission”: 3<br>}’ <a href="http://localhost:8983/solr/admin/authorization" target="_blank" rel="noopener">http://localhost:8983/solr/admin/authorization</a>        </p>
+</blockquote>
+<p>将某个规则分配给某个用户</p>
+<blockquote>
+<p>curl -u solr:SolrRocks -H ‘Content-type:application/json’ -d ‘{<br>   “set-user-role” : {“solr”: [“admin”,”dev”],<br>                      “harry”: null}<br>}’ <a href="http://localhost:8983/solr/admin/authorization" target="_blank" rel="noopener">http://localhost:8983/solr/admin/authorization</a></p>
+</blockquote>
 <h4 id="Hadoop-Authentication-Plugin"><a href="#Hadoop-Authentication-Plugin" class="headerlink" title="Hadoop Authentication Plugin"></a>Hadoop Authentication Plugin</h4>
   </article>
   <aside class="table-content" id="site-toc">
@@ -315,7 +340,7 @@
 
 <div class="bottom-bar">
   <div class="bottom-bar-left">
-    <a href="javascript:void(0);" data-enable="false">
+    <a href="/2019/07/01/Solr学习-六/" data-enable="true">
       <i class="fa fa-arrow-left"></i>
     </a>
     <a href="/2019/05/22/HBase读书笔记-初始HBase/" data-enable="true">

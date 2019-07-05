@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html>
+  
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="utf-8">
+  <meta name="author" content="Dong Yuanxin">
+  
+  
+  <title>Solr学习(六) | Belief</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  
+    <meta name="keywords" content="搜索引擎,solr,">
+  
+
+  
+  <meta name="description" content="李忠友的小站">
+
+  
+
+  <script src="//cdn.jsdelivr.net/npm/leancloud-storage@3.11.1/dist/av-min.js" async></script>
+
+  
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML" async></script>
+  
+
+  
+    <script src="//unpkg.com/valine/dist/Valine.min.js" async></script>
+  
+
+  
+
+  <script>
+  // theme-ad's config script
+  // it can be used in every script
+  
+  window.AD_CONFIG = {
+    leancloud: {"appid":"Hyq9wkH495DgNHWhDQCOfQSp-gzGzoHsz","appkey":"WaR7nrzhliHj9aVwdQzkdlGd","comment":true,"count":true},
+    welcome: {"enable":true,"interval":30},
+    start_time: "2018-02-10",
+    passwords: ["efe07af7441da2b69c4a41e42e73be4db47f66010a56900788a458354a7373ec", ],
+    is_post: true,
+    lock: false,
+    author: "Dong Yuanxin",
+    share: {"twitter":true,"facebook":true,"weibo":true,"qq":true,"wechat":true},
+    mathjax: true,
+    page_type: "",
+    root: "/"
+  };
+</script>
+
+  <script src="/vendor/sha256.min.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/index.js"></script>
+<script src="/vendor/qrcode.min.js"></script>
+
+  
+    <link rel="icon" href="/images/favicon.ico">
+    <link rel="apple-touch-icon" href="/images/touch-icon.png">
+  
+
+  <link href="//netdna.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/index.css">
+<link rel="stylesheet" href="/styles/components/highlight/highlight.css">
+
+  
+</head>
+  <body>
+    <header class="site-header">
+  <div class="site-header-brand">
+    
+      <span class="site-header-brand-title">
+        <a href="/">GODBMW</a>
+      </span>
+    
+    
+      <span class="site-header-brand-motto"> | 安静写些东西</span>
+    
+  </div>
+  <div class="site-header-right">
+    <nav class="site-header-navigation">
+      
+        <a href="/" target="_self">首页</a>
+      
+        <a href="/archives/" target="_self">归档</a>
+      
+        <a href="/tags/" target="_self">标签</a>
+      
+        <a href="/categories/" target="_self">分类</a>
+      
+        <a href="/about/" target="_self">关于</a>
+      
+    </nav>
+    <div class="site-header-btn">
+      
+        <a href="https://github.com/wdzaslzy" target="_blank" id="site-github">
+          <i class="fa fa-github-alt"></i>
+        </a>
+      
+      <a href="javascript:void(0);" id="site-search">
+        <i class="fa fa-search"></i>
+      </a>
+      <a href="javascript:void(0);" id="site-nav-btn">
+        <i class="fa fa-ellipsis-v"></i>
+      </a>
+    </div>
+  </div>
+</header>
+<nav class="table-content" id="site-nav">
+  <div class="table-content-title">
+    <span>导航</span>
+  </div>
+  <div class="table-content-main">
+    <ol class="toc">
+      
+        <li class="toc-item">
+          <a href="/" target="_self">
+            首页
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/archives/" target="_self">
+            归档
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/tags/" target="_self">
+            标签
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/categories/" target="_self">
+            分类
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/about/" target="_self">
+            关于
+          </a>
+        </li>
+      
+    </ol>
+  </div>
+</nav>
+<div id="site-process"></div>
+    <main>
+      
+  <div class="passage">
+  <div class="passage-meta">
+    <span>
+      <i class="fa fa-calendar"></i>2019-07-01
+    </span>
+    
+      <span>
+        | <a href="/categories/搜索引擎/"><i class="fa fa-bookmark"></i>搜索引擎</a>
+      </span>
+    
+    
+      <span>
+        | <i class="fa fa-unlock-alt"></i>UNLOCK
+      </span>
+    
+  </div>
+  <h1 class="passage-title">
+    Solr学习(六)
+  </h1>
+  
+  <article class="passage-article">
+    <p>Solr已经用了一段时间了，随着数据量越来越大，线上也暴露了越来越多的问题。现在把遇到的一些问题，及定位问题处理问题的过程做个记录。</p>
+<h3 id="写数据遇到的问题"><a href="#写数据遇到的问题" class="headerlink" title="写数据遇到的问题"></a>写数据遇到的问题</h3><p>刚开始写数据时，数据量还很小，每天导入一定量的数据，整体也不会有什么问题。但是后面业务改进，Solr需要增加字段，需要对Solr(collection)进行升级。collection升级为V2版本时，需要把V1的数据也导入到V2。导入到V2时，遇到了很多问题。V1的数据量大约有3000万的数据。<br>在导入过程中，暴露的最多的问题就是，响应超时。面对这个问题，我们做了代码的改进、以及集群的调优。<br>代码的改进过程如下：</p>
+<h4 id="第一版"><a href="#第一版" class="headerlink" title="第一版"></a>第一版</h4><p>第一版是最最最最基本的数据导入。使用HttpSolrClient进行。(scala版)<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">val solrClient = <span class="keyword">new</span> HttpSolrClient.Builder(<span class="string">"http://my-solr-server:8983/solr/testcollection"</span>).build()</span><br><span class="line">val documents = <span class="keyword">new</span> ArrayBuffer[SolrInputDocument]()</span><br><span class="line"></span><br><span class="line">val document = <span class="keyword">new</span> SolrInputDocument()</span><br><span class="line">document.addField(<span class="string">"key1"</span>, <span class="string">"value1"</span>)</span><br><span class="line">document.addField(<span class="string">"key2"</span>, <span class="string">"value2"</span>)</span><br><span class="line"></span><br><span class="line">documents += document</span><br><span class="line"></span><br><span class="line">solrClient.add(documents.asJava)</span><br><span class="line">solrClient.commit()</span><br></pre></td></tr></table></figure></p>
+<p>这种代码，数据量小时，可以使用。但是面对大数据，数据量很庞大的情况下，就有点吃力了。<br>具体原因就是，创建HttpSolrClient时，直接指定到了数据发送到哪个Solr节点上。<br>想象一下，大量的请求并发给同一个节点，并发量多了，处理的数据大了，它哪能忙得过来。所以对于那些忙不过来的请求，只能让等着了。<br>所以这种代码在大量数据下，并不怎么合理。<br>所以出现了第二版的代码</p>
+<h4 id="第二版"><a href="#第二版" class="headerlink" title="第二版"></a>第二版</h4><p>通过第一版的分析，我们了解到，一个节点去处理大量数据有点力不从心。于是我们想到了，让多个节点来处理，达到负载均衡的目的。于是我们有了第二版的代码：CloudSolrClient。(scala版)<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">val zkHosts = Array[String](<span class="string">"cdh-85:2181"</span>, <span class="string">"cdh-86:2181"</span>).toList</span><br><span class="line">val cloudSolrClient = <span class="keyword">new</span> CloudSolrClient.Builder(zkHosts.asJava).build()</span><br><span class="line"></span><br><span class="line">val documents = <span class="keyword">new</span> ArrayBuffer[SolrInputDocument]()</span><br><span class="line"></span><br><span class="line">val document = <span class="keyword">new</span> SolrInputDocument()</span><br><span class="line">document.addField(<span class="string">"key1"</span>, <span class="string">"value1"</span>)</span><br><span class="line">document.addField(<span class="string">"key2"</span>, <span class="string">"value2"</span>)</span><br><span class="line"></span><br><span class="line">documents += document</span><br><span class="line"></span><br><span class="line">cloudSolrClient.add(documents.asJava)</span><br><span class="line">cloudSolrClient.commit()</span><br></pre></td></tr></table></figure></p>
+<p>这一版使用了CloudSolrClient。CloudSolrClient它会先连接zk，然后由zk找到一个相对比较空闲的节点来处理请求。然后CloudSolrClient向zk返回的这个比较空闲的节点发送更新请求。这样可以达到一个负载均衡，不至于所有的请求都由一个节点承受。<br>目测这种方式已经很完美了。但是……其实不然。该代码在跑数据时，也出现了大量超时的情况。<br>我们可以看到，我们使用了cloudSolrClient.commit()。显示提交。<br>这种提交的方式是硬提交的形式。即发送请求Solr便立即刷新到磁盘。我们在思考，是不是由于每次提交都刷新磁盘，导致IO太大降低了效率。所以，我们在这基础上又改进了一版。使用软提交的形式。即：cloudSolrClient.commit(true, true, true)<br>软提交的参数，可以在solrconfig.xml中配置。<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">autoSoftCommit</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">maxTime</span>&gt;</span>$&#123;solr.autoSoftCommit.maxTime:15000&#125;<span class="tag">&lt;/<span class="name">maxTime</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">autoSoftCommit</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>maxTime是用来告诉Solr，多久刷新一次，将内存中的数据刷新到磁盘。具体的时间值没有一个固定值，可以根据Solr集群的内容及写入数据的大小进行判断。<br>其实这种形式，在大数据环境下，也不是很有效。我们的数据是通过spark的形式导入的。数据量很大。看了一下软提交的API说明，有一句话说：        </p>
+<blockquote>
+<p>Be very careful when triggering commits from the client side. Commits are heavy operations and WILL impact Solr performance when executed too often or too close together. Instead, consider using ‘commitWithin’ when adding documents or rely on your core’s/collection’s ‘autoCommit’ settings.</p>
+</blockquote>
+<p>这句话是说，太频繁的提交会严重影响Solr性能。倒是可以使用commitWithin或者配置的autoCommit来提交。autoCommit就是硬提交，不过它可以指定间隔多少秒进行一次硬提交。所以我们可以使用它来进行提交。</p>
+<h4 id="第三版"><a href="#第三版" class="headerlink" title="第三版"></a>第三版</h4><p>其实上面几种方式，虽然CloudSolrClient大有改进，但是在后期我又发现一种新的提交方式：ConcurrentUpdateSolrClient。它是一种异步提交的过程。性能其实还不错的。代码不用写了，和前面两种几乎差不多。后期在github上找到了一个和大数据相关的工具。就是spark-solr。引入支持的jar文件。<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.lucidworks.spark<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spark-solr<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.6.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>这个工具其实还是蛮强大的。可以批量写入大量数据，可以将Solr数据读入。在写入时，代码如下：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">val configMap = Map[String, String]((<span class="string">"zkhost"</span>, zkhost + <span class="string">"/solr"</span>), (<span class="string">"collection"</span>, COLLECTION_NAME), (<span class="string">"batch_size"</span>, <span class="string">"2000000"</span>), (<span class="string">"commit_within"</span>, <span class="string">"5000"</span>))</span><br><span class="line">dataFrame.repartition(<span class="number">3</span>).write.format(<span class="string">"solr"</span>).options(configMap).save()</span><br></pre></td></tr></table></figure></p>
+<p>看起来很简单吧？而且，它还支持spark-streaming。<br>github地址如下：<a href="https://github.com/LucidWorks/spark-solr" target="_blank" rel="noopener">spark-solr</a>        </p>
+<p>其实，我们通过代码的层层改进，发现写效果依然很差，就当前的版本，写性能也很不稳定。写几千万条数据要耗时几个小时。且发现我们库里3000多万数据时，查询性能变到了5秒以上。所以此时才认识到，其实并不是我们代码如何再来优化，大多是集群的原因。</p>
+<h3 id="查数据遇到的问题"><a href="#查数据遇到的问题" class="headerlink" title="查数据遇到的问题"></a>查数据遇到的问题</h3><p>接上边的，Solr在后期，数据量达到几千万条时，查询性能变得特别慢。我们意识到，应该是集群配置出了什么故障。<br>首先是配置参数，Solr的配置其实很简单，没什么特别的参数。无非就是设置一些内存大小，几个节点，collection有几个碎片几个副本，等等的。这些配置一般都是不用调整太大的。但是为啥性能还是那么差呢？且Solr每天凌晨5点多都有莫名其妙的性能预警。很难排查出是什么缘由。<br>然后排除了这些能影响Solr性能的点后，最后把目标放在了IO操作。因为Solr最大的影响就是IO操作。但是有个奇怪的问题是，我们平时根本不会向Solr写数据，也不会有大量的查询操作。根本没什么IO操作，但是为什么Solr还在这些空闲时间出现性能警告呢？这个问题真的很蛋疼啊。<br>唉，一切解决不了的问题，都有一个终极的解决办法：重新搭建Solr集群。<br>把这个问题反馈给运维，让运维帮忙单独给我搭建个新的集群，我来试试。单独搭建的新集群测试下来，写性能真的很赞。没出现过任何异常情况，几千万条数据，写入Solr只需要十几分钟。且查询也比之前快了很多。虽说速度不是很快，但确实快了。<br>于是我对比了两个集群的配置参数，发现配置参数几乎没什么问题。百思不得其解啊。为什么一模一样的两个集群，性能差距会这么大呢？<br>(运维搭建的集群，都是通过CDH来搭建)。登录CDH后，查看两个Solr集群。发现一个点：<br>老集群，Solr的三个节点，还搭建了Hue、Hive、Impala。<br>新集群，出了Solr，再无其他服务。<br>or，shit!终于知道了，影响Solr性能的原因了。老集群不仅仅是Solr在工作，还有hive在工作。每天我们有大量的离线任务往Hive里面写数据。对应的服务器，IO肯定会特别高。哪能不影响Solr的性能呢。<br>所以对于Solr性能不稳定、读写差，最终的定位，就在这了。目前新集群相对稳定，暂时没出现过大问题。<br>面对这个问题，及处理方式，在此做个总结。</p>
+
+  </article>
+  <aside class="table-content" id="site-toc">
+  <div class="table-content-title">
+    <i class="fa fa-arrow-right fa-lg" id="site-toc-hide-btn"></i>
+    <span>目录</span>
+  </div>
+  <div class="table-content-main">
+    <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#写数据遇到的问题"><span class="toc-text">写数据遇到的问题</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#第一版"><span class="toc-text">第一版</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#第二版"><span class="toc-text">第二版</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#第三版"><span class="toc-text">第三版</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#查数据遇到的问题"><span class="toc-text">查数据遇到的问题</span></a></li></ol>
+  </div>
+</aside>
+  
+    <aside class="passage-copyright">
+      <div>本文作者: 李忠友</div>
+      
+        <div>
+          原文链接: 
+          <a href target="_blank">http://yoursite.com/2019/07/01/Solr学习-六/</a>
+        </div>
+      
+      <div>
+        版权声明: 本博客所有文章除特别声明外, 禁止转载, 转载请注明出处!
+      </div>
+    </aside>
+  
+  
+    <div class="passage-tags">
+     
+      <a href="/tags/solr/"><i class="fa fa-tags"></i>solr</a>
+    
+    </div>
+  
+</div>
+
+    </main>
+    
+      
+<div class="site-comment-contanier" data-plateform="leancloud">
+  
+    <p id="site-comment-info">
+      <i class="fa fa-spinner fa-spin"></i> 评论加载中
+    </p>
+    <div id="site-comment"></div>
+  
+</div>
+    
+    <div class="site-footer-wrapper">
+</div>
+    <div id="site-layer" style="display:none;">
+  <div class="site-layer-content">
+    <div class="site-layer-header">
+      <span class="site-layer-header-title" id="site-layer-title"></span>
+      <i class="fa fa-close" id="site-layer-close"></i>
+    </div>
+    <div class="site-layer-body" id="site-layer-container">
+      <div class="site-layer-input" id="site-layer-search" style="display: none;">
+        <input type="text">
+        <i class="fa fa-search"></i>
+      </div>
+      <div class="site-layer-reward" id="site-layer-reward" style="display: none;">
+        
+          <div>
+            <img src="/images/wechat.png" alt="WeChat">
+            
+              <p>WeChat</p>
+            
+          </div>
+        
+          <div>
+            <img src="/images/alipay.png" alt="AliPay">
+            
+              <p>AliPay</p>
+            
+          </div>
+        
+      </div>
+      <div id="site-layer-welcome" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+    
+
+<div class="bottom-bar">
+  <div class="bottom-bar-left">
+    <a href="javascript:void(0);" data-enable="false">
+      <i class="fa fa-arrow-left"></i>
+    </a>
+    <a href="/2019/05/27/Solr学习-五/" data-enable="true">
+      <i class="fa fa-arrow-right"></i>
+    </a>
+  </div>
+  <div class="bottom-bar-right">
+    <a href="javascript:void(0);" data-enable="true" id="site-toc-show-btn">
+      <i class="fa fa-bars"></i>
+    </a>
+    
+      <a href="#site-comment" data-enable="true">
+        <i class="fa fa-commenting"></i>
+      </a>
+    
+    <a href="javascript:void(0);" id="site-toggle-share-btn">
+      <i class="fa fa-share-alt"></i>
+    </a>
+    <a href="javascript:void(0);" id="site-reward">
+      <i class="fa fa-thumbs-up"></i>
+    </a>
+    <a href="javascript:void(0);" id="back-top-btn">
+      <i class="fa fa-chevron-up"></i>
+    </a>
+  </div>
+</div>
+    <div id="share-btn">
+  
+    <a id="share-btn-twitter" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-twitter"></i>
+    </a>
+  
+  
+    <a id="share-btn-facebook" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-facebook"></i>
+    </a>
+  
+  
+    <a id="share-btn-weibo" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-weibo"></i>
+    </a>
+  
+  
+    <a id="share-btn-qq" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-qq"></i>
+    </a>
+  
+  
+    <a id="share-btn-wechat" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-wechat"></i>
+    </a>
+  
+</div>
+    
+
+
+
+
+
+    
+  </body>
+</html>
