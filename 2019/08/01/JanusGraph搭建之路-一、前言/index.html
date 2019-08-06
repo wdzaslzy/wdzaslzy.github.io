@@ -6,12 +6,12 @@
   <meta name="author" content="Dong Yuanxin">
   
   
-  <title>Solr学习(四) | Belief</title>
+  <title>JanusGraph搭建之路:一、前言 | Belief</title>
 
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
   
-    <meta name="keywords" content="搜索引擎,solr,">
+    <meta name="keywords" content="图数据库,JanusGraph,">
   
 
   
@@ -154,11 +154,11 @@
   <div class="passage">
   <div class="passage-meta">
     <span>
-      <i class="fa fa-calendar"></i>2019-05-16
+      <i class="fa fa-calendar"></i>2019-08-01
     </span>
     
       <span>
-        | <a href="/categories/搜索引擎/"><i class="fa fa-bookmark"></i>搜索引擎</a>
+        | <a href="/categories/图数据库/"><i class="fa fa-bookmark"></i>图数据库</a>
       </span>
     
     
@@ -168,38 +168,11 @@
     
   </div>
   <h1 class="passage-title">
-    Solr学习(四)
+    JanusGraph搭建之路:一、前言
   </h1>
   
   <article class="passage-article">
-    <p>SolrCloud集群，操作过程</p>
-<p><strong>1. 生成本地config</strong>        </p>
-<blockquote>
-<p>solrctl instancedir –generate /lizy/company/test_config</p>
-</blockquote>
-<p>最后一个参数是生成的文件放在本地哪个文件夹下，配置名叫什么。</p>
-<p><strong>2. 编辑本地config</strong><br>按项目需求，编辑schema文件</p>
-<p><strong>3. 上传到zk</strong>        </p>
-<blockquote>
-<p>solrtcl instancedir –create test_config /lizy/company/test_config</p>
-</blockquote>
-<p>第二个参数是zk集群上，config的名称，第三个参数是您刚在本地生成的config文件</p>
-<p><strong>4. 创建collection</strong>        </p>
-<blockquote>
-<p>solrtcl collection –create test_collection -s 3 -r 3 -m 3 -c test_config</p>
-</blockquote>
-<p>–create后面跟的是collection的名字<br>-s 3表示有3个碎片。s即为：shard<br>-r 3表示每个碎片有3个副本。r即为：replicationFactor<br>-m 3表示每个节点最大的分片数，默认为1。m即为：maxShardsPerNode<br>-c xxx表示当前collection使用哪个配置。我们就用刚刚上传好的配置。<br>碎片和副本的乘积表示节点中有多少个core(单节点的solr的核)。如果您的集群节点只有3个节点，那么您必须要重新设定每个节点的最大分片数，即-m参数。要必须保证core的数量必须小于节点最大可容纳的碎片。即-s <em> -r &lt;= -m </em> nodeCount</p>
-<p><strong>5. 向Solr导入数据</strong></p>
-<p><strong>6. 删除collection</strong>        </p>
-<blockquote>
-<p>solrtcl collection –delete test_collection    </p>
-</blockquote>
-<p>删除某个测试集合。</p>
-<p><strong>7. 删除所有索引数据</strong>        </p>
-<blockquote>
-<p>solrtcl collection –deletedocs test_collection</p>
-</blockquote>
-<p>如果您导错数据，该命令，会让您删除所有已经存在的document</p>
+    <h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><p>有一个需求是要做企业图谱，模型部在负责这一块。企业图谱中需要使用到图数据库。原来模型部选择的是neo4j作为项目中使用的库。neo4j社区版开源，但是有限制，只能单节点不能集群。当然为了方便，我们可以在多个服务器上搭建多个单节点的neo4j服务，使用时做一个负载均衡，也防止某个服务挂了而不影响整体服务。这样就会存在一个问题，同一份数据存储多份。这样会造成硬件资源浪费。        如果购买许可证，因为项目刚开始做，还没有盈利，因此，在模型部要求搭建neo4j集群时，最终被否决。<br>因此，JanusGraph被捡起来了，因为它开源。<br>为了确保项目顺利发布，我们需要先验证JanusGraph能兼容在当前的集群上。并且原来在neo4j上使用的功能，在JanusGraph上依然可以使用。so……JanusGraph的搭建，落在我这了。<br>由于我也是第一次使用JanusGraph，所以我在这记录一下整个搭建过程。如果有误，烦请谅解。</p>
 
   </article>
   <aside class="table-content" id="site-toc">
@@ -208,7 +181,7 @@
     <span>目录</span>
   </div>
   <div class="table-content-main">
-    
+    <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#背景"><span class="toc-text">背景</span></a></li></ol>
   </div>
 </aside>
   
@@ -217,7 +190,7 @@
       
         <div>
           原文链接: 
-          <a href target="_blank">https://wdzaslzy.github.io/2019/05/16/Solr学习-四/</a>
+          <a href target="_blank">https://wdzaslzy.github.io/2019/08/01/JanusGraph搭建之路-一、前言/</a>
         </div>
       
       <div>
@@ -228,7 +201,7 @@
   
     <div class="passage-tags">
      
-      <a href="/tags/solr/"><i class="fa fa-tags"></i>solr</a>
+      <a href="/tags/JanusGraph/"><i class="fa fa-tags"></i>JanusGraph</a>
     
     </div>
   
@@ -284,10 +257,10 @@
 
 <div class="bottom-bar">
   <div class="bottom-bar-left">
-    <a href="/2019/05/22/HBase读书笔记-初始HBase/" data-enable="true">
+    <a href="/2019/08/05/Flink学习-一、Flink环境搭建及Demo/" data-enable="true">
       <i class="fa fa-arrow-left"></i>
     </a>
-    <a href="/2019/05/05/Solr学习-三/" data-enable="true">
+    <a href="/2019/07/17/设计模式-二、策略模式/" data-enable="true">
       <i class="fa fa-arrow-right"></i>
     </a>
   </div>

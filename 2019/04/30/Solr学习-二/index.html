@@ -172,7 +172,7 @@
   </h1>
   
   <article class="passage-article">
-    <p>接上文：<a href="https://wdzaslzy.github.io/2019/04/30/Solr%E5%AD%A6%E4%B9%A0%EF%BC%88%E4%B8%80%EF%BC%89/" target="_blank" rel="noopener">Solr学习（一）</a></p>
+    <p>接上文：<a href="https://wdzaslzy.github.io/2019/04/30/Solr%E5%AD%A6%E4%B9%A0%EF%BC%88%E4%B8%80%EF%BC%89/">Solr学习（一）</a></p>
 <p>上文主要总结了一下Solr的用途以及简单的使用方式。这儿将继续总结Solr的实际使用。实际使用中，搜索及添加数据，一般都在JavaWeb中使用。为了演示功能，我这儿使用Main函数来演示，不使用JavaWeb形式。</p>
 <h3 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h3><p>因为我的需求是搜索文本信息，会涉及到中文搜索，所以使用分词器时，不能用Solr默认的几个分词器。我使用ik分词器。<br>SolrCore及分词方式需要手动来指定。我们先创建一个solr core，名字为：JavaDemo。<br>创建好SolrCore后，再配置ik分词器，分词器配置方式及地址：<a href="https://github.com/magese/ik-analyzer-solr7" target="_blank" rel="noopener">https://github.com/magese/ik-analyzer-solr7</a><br>分词器配置好以后，再配置schema。schema我需要三个字段，分别是title、summary、content。并将它们的分词方式指定为ik分词。配置好后在SolrAdmin中验证是否配置正确。(具体配置方式参考上篇。)<br><img src="/2019/04/30/Solr学习-二/solr_1.jpg" alt><br>完成以上工作后，我们基本完成了一半的工作量。现在Solr里面，已经存在了一个JavaDemo索引，索引有3个字段，这三个字段使用了ik分词器进行分词。接下来就是将数据添加到索引里面，并进行查询了。</p>
 <h3 id="Java添加document"><a href="#Java添加document" class="headerlink" title="Java添加document"></a>Java添加document</h3><p>创建好maven工程，并引入Solr依赖。<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.solr<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>solr-solrj<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">version</span>&gt;</span>8.0.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
@@ -200,7 +200,7 @@
       
         <div>
           原文链接: 
-          <a href target="_blank">http://yoursite.com/2019/04/30/Solr学习-二/</a>
+          <a href target="_blank">https://wdzaslzy.github.io/2019/04/30/Solr学习-二/</a>
         </div>
       
       <div>

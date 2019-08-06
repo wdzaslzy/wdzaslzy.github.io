@@ -172,7 +172,7 @@
   </h1>
   
   <article class="passage-article">
-    <p>接上文：<a href="https://wdzaslzy.github.io/2019/04/30/Solr%E5%AD%A6%E4%B9%A0-%E4%BA%8C/" target="_blank" rel="noopener">Solr学习(二)</a></p>
+    <p>接上文：<a href="https://wdzaslzy.github.io/2019/04/30/Solr%E5%AD%A6%E4%B9%A0-%E4%BA%8C/">Solr学习(二)</a></p>
 <p>前面是初步熟悉Solr的使用，对Solr的使用有个大致了解后，我们基本就掌握了Solr的使用方式，接下来就是让Solr更灵活，功能更丰富。<br>Solr就像一个机器人，我们向Solr输入一堆信息，别人向Solr问问题时，Solr能准确回答。我们输入的信息越详细，得到的结果也越准确。我们向Solr输入的信息称为索引，别人向Solr问问题被称为查询。managed-schema是我们向Solr输入信息的介质。<br>solr的基本信息单元是一个document。它描述的是某些东西的一组数据。比如人，一个document可以描述一个人的姓名、年龄、身高、爱好等。<br>document又由多个field组成，document的每一个特征为一个field。字段可以有多种类型，比如姓名用字符类，年龄用int类。<br>了解了Solr的组成成分，我们开始配置schema。</p>
 <h3 id="schema配置详解"><a href="#schema配置详解" class="headerlink" title="schema配置详解"></a>schema配置详解</h3><h4 id="fieldType配置"><a href="#fieldType配置" class="headerlink" title="fieldType配置"></a>fieldType配置</h4><p>fieldType是字段的类型，用于字段指定特定的类型。fieldType的配置格式：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">fieldType</span> <span class="attr">name</span>=<span class="string">"string"</span> <span class="attr">class</span>=<span class="string">"solr.StrField"</span>/&gt;</span></span><br></pre></td></tr></table></figure></p>
 <p>这个配置表示：配置了一个名字叫string的类型，它的实际类型是solr.StrField。这个类型是org.apache.solr.schema.StrField的缩写，只能在solr内部的类型才能缩写，如果是第三方外部的类型，需要写全称。solr有许多ClassType，具体类型及用法，参考solrapi。<br>fieldType除了这两个属性之外，还有其他的属性，具有不同的功能。这些属性可以在配置field时单独指定，来覆盖fieldType的属性。fieldType的属性值和field的属性值一致，参考下面field属性。<br>在定义fieldType时，除了定义一些基本的属性外，还可以定义其具体的分词方式、过滤方式。这些具体的定义，在后面分词器、过滤器中介绍。        </p>
@@ -286,7 +286,7 @@
       
         <div>
           原文链接: 
-          <a href target="_blank">http://yoursite.com/2019/05/05/Solr学习-三/</a>
+          <a href target="_blank">https://wdzaslzy.github.io/2019/05/05/Solr学习-三/</a>
         </div>
       
       <div>
