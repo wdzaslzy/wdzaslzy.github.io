@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html>
+  
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="utf-8">
+  <meta name="author" content="Dong Yuanxin">
+  
+  
+  <title>HBase读书笔记-HBase基本操作 | Belief</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  
+    <meta name="keywords" content="大数据,hbase,">
+  
+
+  
+  <meta name="description" content="李忠友的小站">
+
+  
+
+  <script src="//cdn.jsdelivr.net/npm/leancloud-storage@3.11.1/dist/av-min.js" async></script>
+
+  
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML" async></script>
+  
+
+  
+    <script src="//unpkg.com/valine/dist/Valine.min.js" async></script>
+  
+
+  
+
+  <script>
+  // theme-ad's config script
+  // it can be used in every script
+  
+  window.AD_CONFIG = {
+    leancloud: {"appid":"Hyq9wkH495DgNHWhDQCOfQSp-gzGzoHsz","appkey":"WaR7nrzhliHj9aVwdQzkdlGd","comment":true,"count":true},
+    welcome: {"enable":true,"interval":30},
+    start_time: "2018-02-10",
+    passwords: ["efe07af7441da2b69c4a41e42e73be4db47f66010a56900788a458354a7373ec", ],
+    is_post: true,
+    lock: false,
+    author: "Dong Yuanxin",
+    share: {"twitter":true,"facebook":true,"weibo":true,"qq":true,"wechat":true},
+    mathjax: true,
+    page_type: "",
+    root: "/"
+  };
+</script>
+
+  <script src="/vendor/sha256.min.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/index.js"></script>
+<script src="/vendor/qrcode.min.js"></script>
+
+  
+    <link rel="icon" href="/images/favicon.ico">
+    <link rel="apple-touch-icon" href="/images/touch-icon.png">
+  
+
+  <link href="//netdna.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/index.css">
+<link rel="stylesheet" href="/styles/components/highlight/highlight.css">
+
+  
+</head>
+  <body>
+    <header class="site-header">
+  <div class="site-header-brand">
+    
+      <span class="site-header-brand-title">
+        <a href="/">GODBMW</a>
+      </span>
+    
+    
+      <span class="site-header-brand-motto"> | 安静写些东西</span>
+    
+  </div>
+  <div class="site-header-right">
+    <nav class="site-header-navigation">
+      
+        <a href="/" target="_self">首页</a>
+      
+        <a href="/archives/" target="_self">归档</a>
+      
+        <a href="/tags/" target="_self">标签</a>
+      
+        <a href="/categories/" target="_self">分类</a>
+      
+        <a href="/about/" target="_self">关于</a>
+      
+    </nav>
+    <div class="site-header-btn">
+      
+        <a href="https://github.com/wdzaslzy" target="_blank" id="site-github">
+          <i class="fa fa-github-alt"></i>
+        </a>
+      
+      <a href="javascript:void(0);" id="site-search">
+        <i class="fa fa-search"></i>
+      </a>
+      <a href="javascript:void(0);" id="site-nav-btn">
+        <i class="fa fa-ellipsis-v"></i>
+      </a>
+    </div>
+  </div>
+</header>
+<nav class="table-content" id="site-nav">
+  <div class="table-content-title">
+    <span>导航</span>
+  </div>
+  <div class="table-content-main">
+    <ol class="toc">
+      
+        <li class="toc-item">
+          <a href="/" target="_self">
+            首页
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/archives/" target="_self">
+            归档
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/tags/" target="_self">
+            标签
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/categories/" target="_self">
+            分类
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/about/" target="_self">
+            关于
+          </a>
+        </li>
+      
+    </ol>
+  </div>
+</nav>
+<div id="site-process"></div>
+    <main>
+      
+  <div class="passage">
+  <div class="passage-meta">
+    <span>
+      <i class="fa fa-calendar"></i>2019-09-11
+    </span>
+    
+      <span>
+        | <a href="/categories/大数据/"><i class="fa fa-bookmark"></i>大数据</a>
+      </span>
+    
+    
+      <span>
+        | <i class="fa fa-unlock-alt"></i>UNLOCK
+      </span>
+    
+  </div>
+  <h1 class="passage-title">
+    HBase读书笔记-HBase基本操作
+  </h1>
+  
+  <article class="passage-article">
+    <h3 id="HBase-shell使用"><a href="#HBase-shell使用" class="headerlink" title="HBase shell使用"></a>HBase shell使用</h3><h4 id="list"><a href="#list" class="headerlink" title="list"></a>list</h4><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>说明</th>
+<th>执行结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>list</td>
+<td>用来列出HBase中有哪些表。如果HBase中表很多，不建议直接使用list命令。</td>
+<td>table_a <br> namespace_1:table_1 <br> ……</td>
+</tr>
+<tr>
+<td>list_namespace</td>
+<td>用来列出HBase下的所有命名空间</td>
+<td>namespace_1 <br> namespace_2 <br> ……</td>
+</tr>
+<tr>
+<td>list_namespace_tables</td>
+<td>用来列出某个命名空间下的所有表</td>
+<td>table_1 <br> table_2 <br> ……</td>
+</tr>
+</tbody>
+</table>
+<h4 id="create"><a href="#create" class="headerlink" title="create"></a>create</h4><p>create 用来建表。语法：     </p>
+<blockquote>
+<p>create ‘t1’, {NAME =&gt; ‘f1’}, {NAME =&gt; ‘f2’}, {NAME =&gt; ‘f3’}</p>
+</blockquote>
+<p>我们先来建一个测试表，把它放在ns1下，表名叫：t_test_1</p>
+<blockquote>
+<p>create ‘ns1:t_test_1’,{NAME =&gt; ‘INFO’, COMPRESSION=&gt;’SNAPPY’,VERSIONS=&gt;1}</p>
+</blockquote>
+<p>这个建表的意思是：命名空间：ns1,表名：t_test_1，列簇名：INFO，使用SNAPPY形式进行压缩。<br>执行这一句话后，你会惊奇的发现，有一个ERROR：Unknown namespace ns1!<br>原因是，我们如果将表建在某个namespace下，那么我们需要先建namespace。</p>
+<blockquote>
+<p>create_namespace ‘ns1’    </p>
+</blockquote>
+<p>创建好namespace后，再执行上面的语句，即可创建表。   </p>
+<p>这里一定要注意，{NAME =&gt; ‘XXX’} 是用来创建列簇的。不是列。一般我们只创建一个列簇。原因是：HBase是按列簇进行存储的。如果有多个列簇，HBase在存储时，会将数据存在不同的地方。这样查询的时候，会从多个地方进行查找。查找效率相对比较低。因此，我们一般真正使用的时候，都在一个列簇下。    </p>
+<p>为什么我们只创建列簇而没有创建列呢，原因是，HBase可以动态的去添加列。一条数据，可能对应的列是不同的，HBase会只创建已有的列。每条数据它拥有的列可能不同。如下图：<br><img src="/2019/09/11/HBase读书笔记-HBase基本操作/hbase_2_1.png" alt>    </p>
+<p>HBase没有数据类型，所有的属性，都定义在列簇上。两个列簇之间可以有不同的属性，因为在存储时，HBase是按列簇存储的。一个列簇一个文件。该列簇下可以存放任意类型的数据，不管是long还是string还是double。</p>
+<h4 id="describe"><a href="#describe" class="headerlink" title="describe"></a>describe</h4><p>describe 用来查看表结构    </p>
+<blockquote>
+<p>describe ‘ns1:t_test_1’</p>
+</blockquote>
+<p>输出：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">	NAME =&gt; &apos;INFO&apos;,                        # 列簇名</span><br><span class="line">	VERSIONS =&gt; &apos;1&apos;,                       # 版本数量</span><br><span class="line">	EVICT_BLOCKS_ON_CLOSE =&gt; &apos;false&apos;,      </span><br><span class="line">	NEW_VERSION_BEHAVIOR =&gt; &apos;false&apos;,</span><br><span class="line">	KEEP_DELETED_CELLS =&gt; &apos;FALSE&apos;,         # 是否保留删除的单元格</span><br><span class="line">	CACHE_DATA_ON_WRITE =&gt; &apos;false&apos;,</span><br><span class="line">	DATA_BLOCK_ENCODING =&gt; &apos;NONE&apos;,         # 数据块编码方式</span><br><span class="line">	TTL =&gt; &apos;FOREVER&apos;,                      # 数据过期时间</span><br><span class="line">	MIN_VERSIONS =&gt; &apos;0&apos;,                   # 最小版本数</span><br><span class="line">	REPLICATION_SCOPE =&gt; &apos;0&apos;,              # 复制范围</span><br><span class="line">	BLOOMFILTER =&gt; &apos;ROW&apos;,                  # 布隆过滤器</span><br><span class="line">	CACHE_INDEX_ON_WRITE =&gt; &apos;false&apos;,       </span><br><span class="line">	IN_MEMORY =&gt; &apos;false&apos;,</span><br><span class="line">	CACHE_BLOOMS_ON_WRITE =&gt; &apos;false&apos;,</span><br><span class="line">	PREFETCH_BLOCKS_ON_OPEN =&gt; &apos;false&apos;,</span><br><span class="line">	COMPRESSION =&gt; &apos;SNAPPY&apos;,               # 压缩方式</span><br><span class="line">	BLOCKCACHE =&gt; &apos;true&apos;,                  # 是否进行缓存</span><br><span class="line">	BLOCKSIZE =&gt; &apos;65536&apos;                   # 块大小</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这里面有几个重要的属性<br>TTL =&gt; ‘FOREVER’</p>
+<blockquote>
+<p>TTL是过期时间，达到过期时间后，数据将会被删除。</p>
+</blockquote>
+<p>MIN_VERSIONS =&gt; ‘0’</p>
+<blockquote>
+<p>最小版本数，和TTL配合使用。设置为0时表示，过期了数据将会被全部删除。如果设置为1时，将会保留1个版本。</p>
+</blockquote>
+<p>BLOCKSIZE =&gt; ‘65536’  </p>
+<blockquote>
+<p>数据块大小配置，默认是64K。数据块的概念在后面HBase详解中会说明。数据块中存储每个HFile的起始键。</p>
+</blockquote>
+<p>IN_MEMORY =&gt; ‘false’</p>
+<blockquote>
+<p>设置为true时，整个列簇都会被保存在内存中。适合非常小的列簇。</p>
+</blockquote>
+<h4 id="put"><a href="#put" class="headerlink" title="put"></a>put</h4><p>put命令，向HBase写数据。Put命令，一次只能写一个单元格。命令如下：</p>
+<blockquote>
+<p>put ‘ns1:t1’, ‘r1’, ‘c1’, ‘value</p>
+</blockquote>
+<p>现在向HBase写一条数据试试看：        </p>
+<blockquote>
+<p>put ‘ns1:t_test_1’,’row_1’,’INFO:name’,’张三’</p>
+</blockquote>
+<p>以此方式，可以向HBase写入多条数据。</p>
+<h4 id="scan"><a href="#scan" class="headerlink" title="scan"></a>scan</h4><p>scan命令，用来扫描HBase表，从头开始扫描。一般不直接使用scan，原因是实际环境下，HBase表数据会超级大，scan全部扫描耗时很严重。一般scan配合limit参数来查询几条数据用来做样本。语法：            </p>
+<blockquote>
+<p>scan ‘ns1:t1’, {COLUMNS =&gt; [‘c1’, ‘c2’], LIMIT =&gt; 10, STARTROW =&gt; ‘xyz’}</p>
+</blockquote>
+<p>我们先用limit限定数量</p>
+<blockquote>
+<p>scan ‘ns1:t_test_1’,LIMIT=&gt;5</p>
+</blockquote>
+<p>如果你的rowkey是有序的。可以指定从某个rowkey开始，到某个rowkey结束。语法：</p>
+<blockquote>
+<p>scan ‘ns1:t_test_1’,{STARTROW=&gt;’row_1’, ENDROW=&gt;’row_3’}</p>
+</blockquote>
+<h4 id="get"><a href="#get" class="headerlink" title="get"></a>get</h4><p>get也是用来取数据的。一般线上基本都是使用get方式。get可以根据具体的rowkey来获取。当然也可以获取特定的某列。语法：        </p>
+<blockquote>
+<p>get ‘r1’, {COLUMN =&gt; [‘c1’, ‘c2’, ‘c3’]}</p>
+</blockquote>
+<h4 id="delete"><a href="#delete" class="headerlink" title="delete"></a>delete</h4><p>delete删除数据，根据rowkey来删除。命令：        </p>
+<blockquote>
+<p>delete ‘ns1:t1’, ‘r1’, ‘c1’, ts1</p>
+</blockquote>
+<p>例如：</p>
+<blockquote>
+<p>delete ‘ns1:t_test_1’, ‘row_1’, “INFO:name”</p>
+</blockquote>
+<p>delete用来删除某个列数据，deleteall用来删除整行记录，即：某个rowkey的所有列。</p>
+<blockquote>
+<p>deleteall ‘ns1:t_test_1’,’row_1’</p>
+</blockquote>
+<h4 id="disable"><a href="#disable" class="headerlink" title="disable"></a>disable</h4><p>停用表</p>
+<h4 id="drop"><a href="#drop" class="headerlink" title="drop"></a>drop</h4><p>删除表。在删除表前，需要先停用。</p>
+<h3 id="HBase-API使用"><a href="#HBase-API使用" class="headerlink" title="HBase API使用"></a>HBase API使用</h3><p>shell命令，一般在建表、查看样本数据时使用，线上实际使用，还是通过java api的方式来使用。下面是java api的例子。        </p>
+<h4 id="创建HBase工程，并引入HBase-jar包。"><a href="#创建HBase工程，并引入HBase-jar包。" class="headerlink" title="创建HBase工程，并引入HBase jar包。"></a>创建HBase工程，并引入HBase jar包。</h4><p><img src="/2019/09/11/HBase读书笔记-HBase基本操作/hbase_2_2.png" alt></p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependencies</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">		<span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.hbase<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">		<span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>hbase-client<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">		<span class="tag">&lt;<span class="name">version</span>&gt;</span>2.2.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<h4 id="连接HBase"><a href="#连接HBase" class="headerlink" title="连接HBase"></a>连接HBase</h4><p>连接HBase需要zk。我们指定配置的zk即可。HBase的配置可以在HBase安装的目录下去看，也可以在HBase WebUI中看。<a href="http://bigdata-1.baofoo.cn:16010/conf" target="_blank" rel="noopener">http://bigdata-1.baofoo.cn:16010/conf</a>        </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Connection <span class="title">getConnection</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">	  Configuration configuration = HBaseConfiguration.create();</span><br><span class="line">	  configuration.set(<span class="string">"hbase.zookeeper.quorum"</span>, <span class="string">"bigdata-2.baofoo.cn,bigdata-1.baofoo.cn,bigdata-3.baofoo.cn"</span>);</span><br><span class="line">	  configuration.set(<span class="string">"hbase.zookeeper.property.clientPort"</span>, <span class="string">"2181"</span>);</span><br><span class="line">	  <span class="keyword">return</span> ConnectionFactory.createConnection(configuration);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="创建表"><a href="#创建表" class="headerlink" title="创建表"></a>创建表</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">createTable</span><span class="params">(Connection connection)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">		<span class="comment">//获得admin</span></span><br><span class="line">		Admin admin = connection.getAdmin();</span><br><span class="line">		<span class="comment">//定义列簇</span></span><br><span class="line">		ColumnFamilyDescriptor columnFamilyDes = ColumnFamilyDescriptorBuilder.newBuilder(<span class="string">"INFO"</span>.getBytes())</span><br><span class="line">						.setMaxVersions(<span class="number">5</span>)</span><br><span class="line">						.setCompressionType(Algorithm.SNAPPY)</span><br><span class="line">						.setTimeToLive(<span class="number">10000</span>)</span><br><span class="line">						.build();</span><br><span class="line">		<span class="comment">//定义表</span></span><br><span class="line">		TableName tableName = TableName.valueOf(<span class="string">"t_test_2"</span>);</span><br><span class="line">		TableDescriptor tableDes = TableDescriptorBuilder.newBuilder(tableName)</span><br><span class="line">						.setColumnFamily(columnFamilyDes)</span><br><span class="line">						.build();</span><br><span class="line">		admin.createTable(tableDes);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="写数据"><a href="#写数据" class="headerlink" title="写数据"></a>写数据</h4><p>向HBase写数据有多个API。常见的：put。<br>put是写一条新的数据。如果历史存在了，就做更新。比如，原来有一个rowkey，一共2个列，分别为name，age。<br>现在写同样一个rowkey，但是只有hobby，那么使用put后，原来的name和age列将被覆盖成hobby列。        </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">put</span><span class="params">(Connection connection)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">		Table table = connection.getTable(TableName.valueOf(<span class="string">"ns1:t_test_1"</span>));</span><br><span class="line">		Put put = <span class="keyword">new</span> Put(<span class="string">"row_1"</span>.getBytes());</span><br><span class="line">		put.addColumn(<span class="string">"INFO"</span>.getBytes(), <span class="string">"name"</span>.getBytes(), <span class="string">"lizy"</span>.getBytes());</span><br><span class="line">		put.addColumn(<span class="string">"INFO"</span>.getBytes(), <span class="string">"age"</span>.getBytes(), <span class="string">"24"</span>.getBytes());</span><br><span class="line">		table.put(put);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果需要在原来的基础上添加列，而不是覆盖整个列，可以使用append函数。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">append</span><span class="params">(Connection connection)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">		Table table = connection.getTable(TableName.valueOf(<span class="string">"ns1:t_test_1"</span>));</span><br><span class="line">		Append append = <span class="keyword">new</span> Append(<span class="string">"row_1"</span>.getBytes());</span><br><span class="line">		append.addColumn(<span class="string">"INFO"</span>.getBytes(), <span class="string">"hobby"</span>.getBytes(), <span class="string">"下棋"</span>.getBytes());</span><br><span class="line">		table.append(append);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="取数据"><a href="#取数据" class="headerlink" title="取数据"></a>取数据</h4><p>读取某个rowkey数据。读数据一定要注意，稍微不注意，会有空指针异常。每个get对象，不管能不能获取到结果，都会返回出一个结果，如果该结果不存在，会返回一个null。这时，如果不对null进行处理，则会报空指针异常。下面是get集合的处理。            </p>
+<pre><code class="java"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">gets</span><span class="params">(Connection connection)</span> <span class="keyword">throws</span> IOException </span>{
+        Table table = connection.getTable(TableName.valueOf(<span class="string">"ns1:t_test_1"</span>));
+        Get get1 = <span class="keyword">new</span> Get(<span class="string">"row_1"</span>.getBytes());
+<span class="comment">//        get1.addColumn("INFO".getBytes(), "name".getBytes());</span>
+        Get get2 = <span class="keyword">new</span> Get(<span class="string">"row_2"</span>.getBytes());
+<span class="comment">//        get2.addColumn("INFO".getBytes(), "name".getBytes());</span>
+        Result[] results = table.get(Lists.newArrayList(get1, get2));
+        <span class="keyword">for</span> (Result result : results) {
+                <span class="comment">//此处要小心，表里面没有row_2这个rowkey的话，会报空指针异常。hbase查看的时候即使没有，也会返回一个空的result。</span>
+                <span class="keyword">if</span> (result != <span class="keyword">null</span>) {
+                        List&lt;Cell&gt; cells = result.listCells();
+                        <span class="keyword">for</span> (Cell cell : cells) {
+                                System.out.println(<span class="keyword">new</span> String(CellUtil.cloneRow(cell))
+                                                + <span class="string">":"</span> + <span class="keyword">new</span> String(CellUtil.cloneValue(cell)));
+                        }
+                }
+        }
+}
+</code></pre>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>创建HTable实例是有代价的。每个实例都需要扫描.META表，以检查该表是否存在、是否可用，此外还要执行一些其他操作，这些检查和操作导致实例调用非常耗时。如果用户需要使用多个HTable实例，考虑使用HTablePool类。            </p>
+
+  </article>
+  <aside class="table-content" id="site-toc">
+  <div class="table-content-title">
+    <i class="fa fa-arrow-right fa-lg" id="site-toc-hide-btn"></i>
+    <span>目录</span>
+  </div>
+  <div class="table-content-main">
+    <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#HBase-shell使用"><span class="toc-text">HBase shell使用</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#list"><span class="toc-text">list</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#create"><span class="toc-text">create</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#describe"><span class="toc-text">describe</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#put"><span class="toc-text">put</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#scan"><span class="toc-text">scan</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#get"><span class="toc-text">get</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#delete"><span class="toc-text">delete</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#disable"><span class="toc-text">disable</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#drop"><span class="toc-text">drop</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#HBase-API使用"><span class="toc-text">HBase API使用</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#创建HBase工程，并引入HBase-jar包。"><span class="toc-text">创建HBase工程，并引入HBase jar包。</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#连接HBase"><span class="toc-text">连接HBase</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#创建表"><span class="toc-text">创建表</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#写数据"><span class="toc-text">写数据</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#取数据"><span class="toc-text">取数据</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#总结"><span class="toc-text">总结</span></a></li></ol>
+  </div>
+</aside>
+  
+    <aside class="passage-copyright">
+      <div>本文作者: 李忠友</div>
+      
+        <div>
+          原文链接: 
+          <a href target="_blank">https://wdzaslzy.github.io/2019/09/11/HBase读书笔记-HBase基本操作/</a>
+        </div>
+      
+      <div>
+        版权声明: 本博客所有文章除特别声明外, 禁止转载, 转载请注明出处!
+      </div>
+    </aside>
+  
+  
+    <div class="passage-tags">
+     
+      <a href="/tags/hbase/"><i class="fa fa-tags"></i>hbase</a>
+    
+    </div>
+  
+</div>
+
+    </main>
+    
+      
+<div class="site-comment-contanier" data-plateform="leancloud">
+  
+    <p id="site-comment-info">
+      <i class="fa fa-spinner fa-spin"></i> 评论加载中
+    </p>
+    <div id="site-comment"></div>
+  
+</div>
+    
+    <div class="site-footer-wrapper">
+</div>
+    <div id="site-layer" style="display:none;">
+  <div class="site-layer-content">
+    <div class="site-layer-header">
+      <span class="site-layer-header-title" id="site-layer-title"></span>
+      <i class="fa fa-close" id="site-layer-close"></i>
+    </div>
+    <div class="site-layer-body" id="site-layer-container">
+      <div class="site-layer-input" id="site-layer-search" style="display: none;">
+        <input type="text">
+        <i class="fa fa-search"></i>
+      </div>
+      <div class="site-layer-reward" id="site-layer-reward" style="display: none;">
+        
+          <div>
+            <img src="/images/wechat.png" alt="WeChat">
+            
+              <p>WeChat</p>
+            
+          </div>
+        
+          <div>
+            <img src="/images/alipay.png" alt="AliPay">
+            
+              <p>AliPay</p>
+            
+          </div>
+        
+      </div>
+      <div id="site-layer-welcome" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+    
+
+<div class="bottom-bar">
+  <div class="bottom-bar-left">
+    <a href="/2019/10/08/HBase读书笔记-基本知识/" data-enable="true">
+      <i class="fa fa-arrow-left"></i>
+    </a>
+    <a href="/2019/08/05/Flink学习-一、Flink环境搭建及Demo/" data-enable="true">
+      <i class="fa fa-arrow-right"></i>
+    </a>
+  </div>
+  <div class="bottom-bar-right">
+    <a href="javascript:void(0);" data-enable="true" id="site-toc-show-btn">
+      <i class="fa fa-bars"></i>
+    </a>
+    
+      <a href="#site-comment" data-enable="true">
+        <i class="fa fa-commenting"></i>
+      </a>
+    
+    <a href="javascript:void(0);" id="site-toggle-share-btn">
+      <i class="fa fa-share-alt"></i>
+    </a>
+    <a href="javascript:void(0);" id="site-reward">
+      <i class="fa fa-thumbs-up"></i>
+    </a>
+    <a href="javascript:void(0);" id="back-top-btn">
+      <i class="fa fa-chevron-up"></i>
+    </a>
+  </div>
+</div>
+    <div id="share-btn">
+  
+    <a id="share-btn-twitter" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-twitter"></i>
+    </a>
+  
+  
+    <a id="share-btn-facebook" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-facebook"></i>
+    </a>
+  
+  
+    <a id="share-btn-weibo" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-weibo"></i>
+    </a>
+  
+  
+    <a id="share-btn-qq" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-qq"></i>
+    </a>
+  
+  
+    <a id="share-btn-wechat" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-wechat"></i>
+    </a>
+  
+</div>
+    
+
+
+
+
+
+    
+  </body>
+</html>
