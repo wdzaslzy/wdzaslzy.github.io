@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+  
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="utf-8">
+  <meta name="author" content="Dong Yuanxin">
+  
+  
+  <title>Flink学习:四、Window &amp; Time详解 | Belief</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  
+    <meta name="keywords" content="流计算,flink,">
+  
+
+  
+  <meta name="description" content="李忠友的小站">
+
+  
+
+  <script src="//cdn.jsdelivr.net/npm/leancloud-storage@3.11.1/dist/av-min.js" async></script>
+
+  
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML" async></script>
+  
+
+  
+    <script src="//unpkg.com/valine/dist/Valine.min.js" async></script>
+  
+
+  
+
+  <script>
+  // theme-ad's config script
+  // it can be used in every script
+  
+  window.AD_CONFIG = {
+    leancloud: {"appid":"Hyq9wkH495DgNHWhDQCOfQSp-gzGzoHsz","appkey":"WaR7nrzhliHj9aVwdQzkdlGd","comment":true,"count":true},
+    welcome: {"enable":true,"interval":30},
+    start_time: "2018-02-10",
+    passwords: ["efe07af7441da2b69c4a41e42e73be4db47f66010a56900788a458354a7373ec", ],
+    is_post: true,
+    lock: false,
+    author: "Dong Yuanxin",
+    share: {"twitter":true,"facebook":true,"weibo":true,"qq":true,"wechat":true},
+    mathjax: true,
+    page_type: "",
+    root: "/"
+  };
+</script>
+
+  <script src="/vendor/sha256.min.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/index.js"></script>
+<script src="/vendor/qrcode.min.js"></script>
+
+  
+    <link rel="icon" href="/images/favicon.ico">
+    <link rel="apple-touch-icon" href="/images/touch-icon.png">
+  
+
+  <link href="//netdna.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/index.css">
+<link rel="stylesheet" href="/styles/components/highlight/highlight.css">
+
+  
+</head>
+  <body>
+    <header class="site-header">
+  <div class="site-header-brand">
+    
+      <span class="site-header-brand-title">
+        <a href="/">GODBMW</a>
+      </span>
+    
+    
+      <span class="site-header-brand-motto"> | 安静写些东西</span>
+    
+  </div>
+  <div class="site-header-right">
+    <nav class="site-header-navigation">
+      
+        <a href="/" target="_self">首页</a>
+      
+        <a href="/archives/" target="_self">归档</a>
+      
+        <a href="/tags/" target="_self">标签</a>
+      
+        <a href="/categories/" target="_self">分类</a>
+      
+        <a href="/about/" target="_self">关于</a>
+      
+    </nav>
+    <div class="site-header-btn">
+      
+        <a href="https://github.com/wdzaslzy" target="_blank" id="site-github">
+          <i class="fa fa-github-alt"></i>
+        </a>
+      
+      <a href="javascript:void(0);" id="site-search">
+        <i class="fa fa-search"></i>
+      </a>
+      <a href="javascript:void(0);" id="site-nav-btn">
+        <i class="fa fa-ellipsis-v"></i>
+      </a>
+    </div>
+  </div>
+</header>
+<nav class="table-content" id="site-nav">
+  <div class="table-content-title">
+    <span>导航</span>
+  </div>
+  <div class="table-content-main">
+    <ol class="toc">
+      
+        <li class="toc-item">
+          <a href="/" target="_self">
+            首页
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/archives/" target="_self">
+            归档
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/tags/" target="_self">
+            标签
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/categories/" target="_self">
+            分类
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/about/" target="_self">
+            关于
+          </a>
+        </li>
+      
+    </ol>
+  </div>
+</nav>
+<div id="site-process"></div>
+    <main>
+      
+  <div class="passage">
+  <div class="passage-meta">
+    <span>
+      <i class="fa fa-calendar"></i>2019-10-24
+    </span>
+    
+      <span>
+        | <a href="/categories/流计算/"><i class="fa fa-bookmark"></i>流计算</a>
+      </span>
+    
+    
+      <span>
+        | <i class="fa fa-unlock-alt"></i>UNLOCK
+      </span>
+    
+  </div>
+  <h1 class="passage-title">
+    Flink学习:四、Window & Time详解
+  </h1>
+  
+  <article class="passage-article">
+    <h3 id="Window"><a href="#Window" class="headerlink" title="Window"></a>Window</h3><p>在流计算引擎中，数据是源源不断的流入到系统中的，我们不可能等所有的数据都接受完了才开始处理。我们可以来一条处理一条。 但是某些时候，我们需要做一些聚合操作。例如过去1分钟内有多少用户点击了某个网站。这个时候，我们就需要借助窗口来完成我们的操作。</p>
+<p>窗口可以是以时间为参照来划分的(Time Window，例如每1分钟)，也可以是以数据参照来划分的(Count Window，如每接受100条)。</p>
+<h4 id="Flink-内置-Window"><a href="#Flink-内置-Window" class="headerlink" title="Flink 内置 Window"></a>Flink 内置 Window</h4><p>flink有三个内置window，分别是：</p>
+<ol>
+<li>Time Window</li>
+<li>Count Window</li>
+<li>Session Window</li>
+</ol>
+<p><strong>Time Window</strong></p>
+<p>time window是根据时间(event time)来对流数据进行分组的。time window有两种类型，分别是滑动和翻滚窗口。</p>
+<p><img src="/2019/10/24/Flink学习-四、Window-Time详解/4_1.png" alt></p>
+<p>上图是一个滑动窗口(Sliding Time Window)，它的窗口大小是3，滑动大小是2。第一个窗口的时间区间是：time1[0,3]，第二个窗口的时间区间是：time2[2,5]。窗口大小是固定的，每处理一次后，向右滑动2个时间单位。举个简单的应用场景：我们每隔2分钟需要计算一次最近3分钟用户购买的商品数。滑动窗口的定义方式：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> timeWindow = source.keyBy(<span class="number">0</span>).timeWindow(<span class="type">Time</span>.seconds(<span class="number">3</span>L), <span class="type">Time</span>.seconds(<span class="number">2</span>L))</span><br></pre></td></tr></table></figure>
+<p>源码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> WindowedStream&lt;T, KEY, TimeWindow&gt; <span class="title">timeWindow</span><span class="params">(Time size, Time slide)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (environment.getStreamTimeCharacteristic() == TimeCharacteristic.ProcessingTime) &#123;</span><br><span class="line">        <span class="keyword">return</span> window(SlidingProcessingTimeWindows.of(size, slide));</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> window(SlidingEventTimeWindows.of(size, slide));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当滑动大小等于窗口大小时，这样的窗口被称作翻滚窗口(Tumbling Time Window)。</p>
+<p><img src="/2019/10/24/Flink学习-四、Window-Time详解/4_2.png" alt></p>
+<p>翻滚窗口的应用场景比较多，例如每天计算前一天的总销售额等等。翻滚窗口的定义方式如下：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> timeWindow = source.keyBy(<span class="number">0</span>).timeWindow(<span class="type">Time</span>.days(<span class="number">1</span>L))</span><br></pre></td></tr></table></figure>
+<p>源码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> WindowedStream&lt;T, KEY, TimeWindow&gt; <span class="title">timeWindow</span><span class="params">(Time size)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (environment.getStreamTimeCharacteristic() == TimeCharacteristic.ProcessingTime) &#123;</span><br><span class="line">        <span class="keyword">return</span> window(TumblingProcessingTimeWindows.of(size));</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> window(TumblingEventTimeWindows.of(size));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>Count Window</strong></p>
+<p>count window 是以元素个数对流数据进行分组的。它同样也有滑动和翻滚两种形式。</p>
+<p><img src="/2019/10/24/Flink学习-四、Window-Time详解/4_3.png" alt></p>
+<p>tumbling count window 定义方式如下：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> countWindow = source.keyBy(<span class="number">0</span>).countWindow(<span class="number">100</span>)</span><br></pre></td></tr></table></figure>
+<p>sliding count window 定义方式如下：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> countWindow = source.keyBy(<span class="number">0</span>).countWindow(<span class="number">100</span>, <span class="number">20</span>)</span><br></pre></td></tr></table></figure>
+<p><strong>Session Window</strong></p>
+<p>session window是以会话时长来分组的。例如计算每个用户在活跃期间购买的商品数，如果30秒没有活跃则视为会话断开。这个30秒就是会话的间隔。session window的定义方式如下：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> countWindow = source.keyBy(<span class="number">0</span>).window(<span class="type">ProcessingTimeSessionWindows</span>.withGap(<span class="type">Time</span>.seconds(<span class="number">30</span>)))</span><br></pre></td></tr></table></figure>
+<h4 id="window实现原理"><a href="#window实现原理" class="headerlink" title="window实现原理"></a>window实现原理</h4><p>自定义window前，我们需要先了解window的三个必要组件：</p>
+<ol>
+<li>Window Assigner</li>
+<li>Trigger</li>
+<li>Evictor</li>
+</ol>
+<p><strong>Window Assigner</strong></p>
+<p>用来决定某个元素被分配到哪个窗口中去。</p>
+<p><strong>Trigger</strong></p>
+<p>触发器，决定了一个窗口何时能够被计算或清除，每个窗口都会拥有一个自己的Trigger。</p>
+<p><strong>Evictor</strong></p>
+<p>trigger触发之后，在窗口被处理之前，evictor用来剔除窗口中不需要的元素，类似于filter。</p>
+<h4 id="自定义window"><a href="#自定义window" class="headerlink" title="自定义window"></a>自定义window</h4>
+  </article>
+  <aside class="table-content" id="site-toc">
+  <div class="table-content-title">
+    <i class="fa fa-arrow-right fa-lg" id="site-toc-hide-btn"></i>
+    <span>目录</span>
+  </div>
+  <div class="table-content-main">
+    <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Window"><span class="toc-text">Window</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Flink-内置-Window"><span class="toc-text">Flink 内置 Window</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#window实现原理"><span class="toc-text">window实现原理</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#自定义window"><span class="toc-text">自定义window</span></a></li></ol></li></ol>
+  </div>
+</aside>
+  
+    <aside class="passage-copyright">
+      <div>本文作者: 李忠友</div>
+      
+        <div>
+          原文链接: 
+          <a href target="_blank">https://wdzaslzy.github.io/2019/10/24/Flink学习-四、Window-Time详解/</a>
+        </div>
+      
+      <div>
+        版权声明: 本博客所有文章除特别声明外, 禁止转载, 转载请注明出处!
+      </div>
+    </aside>
+  
+  
+    <div class="passage-tags">
+     
+      <a href="/tags/flink/"><i class="fa fa-tags"></i>flink</a>
+    
+    </div>
+  
+</div>
+
+    </main>
+    
+      
+<div class="site-comment-contanier" data-plateform="leancloud">
+  
+    <p id="site-comment-info">
+      <i class="fa fa-spinner fa-spin"></i> 评论加载中
+    </p>
+    <div id="site-comment"></div>
+  
+</div>
+    
+    <div class="site-footer-wrapper">
+</div>
+    <div id="site-layer" style="display:none;">
+  <div class="site-layer-content">
+    <div class="site-layer-header">
+      <span class="site-layer-header-title" id="site-layer-title"></span>
+      <i class="fa fa-close" id="site-layer-close"></i>
+    </div>
+    <div class="site-layer-body" id="site-layer-container">
+      <div class="site-layer-input" id="site-layer-search" style="display: none;">
+        <input type="text">
+        <i class="fa fa-search"></i>
+      </div>
+      <div class="site-layer-reward" id="site-layer-reward" style="display: none;">
+        
+          <div>
+            <img src="/images/wechat.png" alt="WeChat">
+            
+              <p>WeChat</p>
+            
+          </div>
+        
+          <div>
+            <img src="/images/alipay.png" alt="AliPay">
+            
+              <p>AliPay</p>
+            
+          </div>
+        
+      </div>
+      <div id="site-layer-welcome" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+    
+
+<div class="bottom-bar">
+  <div class="bottom-bar-left">
+    <a href="/2019/10/29/Flink学习-五、状态管理与容错机制/" data-enable="true">
+      <i class="fa fa-arrow-left"></i>
+    </a>
+    <a href="/2019/10/23/Flink学习-三、客户端操作/" data-enable="true">
+      <i class="fa fa-arrow-right"></i>
+    </a>
+  </div>
+  <div class="bottom-bar-right">
+    <a href="javascript:void(0);" data-enable="true" id="site-toc-show-btn">
+      <i class="fa fa-bars"></i>
+    </a>
+    
+      <a href="#site-comment" data-enable="true">
+        <i class="fa fa-commenting"></i>
+      </a>
+    
+    <a href="javascript:void(0);" id="site-toggle-share-btn">
+      <i class="fa fa-share-alt"></i>
+    </a>
+    <a href="javascript:void(0);" id="site-reward">
+      <i class="fa fa-thumbs-up"></i>
+    </a>
+    <a href="javascript:void(0);" id="back-top-btn">
+      <i class="fa fa-chevron-up"></i>
+    </a>
+  </div>
+</div>
+    <div id="share-btn">
+  
+    <a id="share-btn-twitter" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-twitter"></i>
+    </a>
+  
+  
+    <a id="share-btn-facebook" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-facebook"></i>
+    </a>
+  
+  
+    <a id="share-btn-weibo" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-weibo"></i>
+    </a>
+  
+  
+    <a id="share-btn-qq" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-qq"></i>
+    </a>
+  
+  
+    <a id="share-btn-wechat" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-wechat"></i>
+    </a>
+  
+</div>
+    
+
+
+
+
+
+    
+  </body>
+</html>

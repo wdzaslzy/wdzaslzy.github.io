@@ -11,7 +11,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
   
-    <meta name="keywords" content="Hexo, Theme-AD">
+    <meta name="keywords" content="流计算,flink,">
   
 
   
@@ -157,6 +157,10 @@
       <i class="fa fa-calendar"></i>2019-10-23
     </span>
     
+      <span>
+        | <a href="/categories/流计算/"><i class="fa fa-bookmark"></i>流计算</a>
+      </span>
+    
     
       <span>
         | <i class="fa fa-unlock-alt"></i>UNLOCK
@@ -168,7 +172,67 @@
   </h1>
   
   <article class="passage-article">
-    
+    <h3 id="Flink-客户端操作"><a href="#Flink-客户端操作" class="headerlink" title="Flink 客户端操作"></a>Flink 客户端操作</h3><h4 id="启动Flink集群"><a href="#启动Flink集群" class="headerlink" title="启动Flink集群"></a>启动Flink集群</h4><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt; sh start-cluster.sh</span><br></pre></td></tr></table></figure>
+<h4 id="flink-命令"><a href="#flink-命令" class="headerlink" title="flink 命令"></a>flink 命令</h4><p>可以通过flink  -h 查看它的所有命令。下面是一些常见的命令。</p>
+<p><strong>run</strong></p>
+<p>运行任务，以官方自带的WordCount例子来测试。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sh bin/flink run -d examples/streaming/WordCount.jar</span><br></pre></td></tr></table></figure>
+<figure class="highlight tex"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Setting HADOOP_CONF_DIR=/etc/hadoop/conf because no HADOOP_CONF_DIR was set.</span><br><span class="line">Starting execution of program</span><br><span class="line">Executing WordCount example with default input data set.</span><br><span class="line">Use --input to specify file input.</span><br><span class="line">Printing result to stdout. Use --output to specify output path.</span><br><span class="line">Job has been submitted with JobID 3f10b908b32a5338bec39317a648a9b7</span><br></pre></td></tr></table></figure>
+<p><strong>list</strong></p>
+<p>查看正在运行的任务列表</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sh bin/flink list</span><br></pre></td></tr></table></figure>
+<p>如果查看某个jobManager上正在运行的任务，可以通过-m参数来指定</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sh bin/flink list -m bigdata-1.baofoo.cn:8081</span><br></pre></td></tr></table></figure>
+<p><strong>stop</strong></p>
+<p>停止某个任务。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sh bin/flink stop -m bigdata-1.baofoo.cn:8081 f445c7008a33a3ffb91a315986d577ce</span><br></pre></td></tr></table></figure>
+<p>-yid用来停止提交在yarn上的一个任务。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sh bin/flink stop -yid applicationId_1214542554568</span><br></pre></td></tr></table></figure>
+<p><strong>cancel</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sh bin/flink cancel -m bigdata-1.baofoo.cn:8081 f445c7008a33a3ffb91a315986d577ce</span><br></pre></td></tr></table></figure>
+<p>也用来停止某个任务。和stop的区别是：</p>
+<p> cancel命令，立即调用作业算子的 cancel() 方法，以尽快取消它们。如果算子在接到 cancel() 调用后没有停止，Flink 将开始定期中断算子线程的执行，直到所有算子停止为止。 </p>
+<p> stop命令，是更优雅的停止正在运行流作业的方式。stop仅适用于 Source 实现了 StoppableFunction 接口的作业。当用户请求停止作业时，作业的所有 Source 都将接收 stop方法调用。直到所有 Source 正常关闭时，作业才会正常结束。这种方式，使作业正常处理完所有作业。 </p>
+<p><strong>savepoint</strong></p>
+<p>做保存点。savepoint 与 checkpoint 的区别：</p>
+<p>checkpoint 是增量做的，每次时间较短，数据量较小。程序启动后会自动触发，用户无感知。</p>
+<p>savepoint 是全量做的，时间较长，数据量较大，需要用户主动去触发，savepoint一般用于程序版本更新、bug修复等场景。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sh bin/flink savepoint -m bigdata-1.baofoo.cn:8081 f445c7008a33a3ffb91a315986d577ce /tmp/lizy/flink/savepoint</span><br></pre></td></tr></table></figure>
+<p>保存好保存点后，就可以从指定的保存点来启动任务了。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sh bin/flink run -d -s /tmp/lizy/flink/savepoint/savepoint-xxx examples/streaming/TopSpeedWindowing.jar</span><br></pre></td></tr></table></figure>
+<p><strong>info</strong></p>
+<p>用来查看任务的执行计划。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sh bin/flink info examples/streaming/WordCount.jar</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">----------------------- Execution Plan -----------------------</span><br><span class="line">&#123;&quot;nodes&quot;:[&#123;&quot;id&quot;:1,&quot;type&quot;:&quot;Source: Collection Source&quot;,&quot;pact&quot;:&quot;Data Source&quot;,&quot;contents&quot;:&quot;Source: Collection Source&quot;,&quot;parallelism&quot;:1&#125;,&#123;&quot;id&quot;:2,&quot;type&quot;:&quot;Flat Map&quot;,&quot;pact&quot;:&quot;Operator&quot;,&quot;contents&quot;:&quot;Flat Map&quot;,&quot;parallelism&quot;:1,&quot;predecessors&quot;:[&#123;&quot;id&quot;:1,&quot;ship_strategy&quot;:&quot;FORWARD&quot;,&quot;side&quot;:&quot;second&quot;&#125;]&#125;,&#123;&quot;id&quot;:4,&quot;type&quot;:&quot;Keyed Aggregation&quot;,&quot;pact&quot;:&quot;Operator&quot;,&quot;contents&quot;:&quot;Keyed Aggregation&quot;,&quot;parallelism&quot;:1,&quot;predecessors&quot;:[&#123;&quot;id&quot;:2,&quot;ship_strategy&quot;:&quot;HASH&quot;,&quot;side&quot;:&quot;second&quot;&#125;]&#125;,&#123;&quot;id&quot;:5,&quot;type&quot;:&quot;Sink: Print to Std. Out&quot;,&quot;pact&quot;:&quot;Data Sink&quot;,&quot;contents&quot;:&quot;Sink: Print to Std. Out&quot;,&quot;parallelism&quot;:1,&quot;predecessors&quot;:[&#123;&quot;id&quot;:4,&quot;ship_strategy&quot;:&quot;FORWARD&quot;,&quot;side&quot;:&quot;second&quot;&#125;]&#125;]&#125;</span><br><span class="line">--------------------------------------------------------------</span><br></pre></td></tr></table></figure>
+<p>将这个json结果复制到：<a href="https://flink.apache.org/visualizer" target="_blank" rel="noopener">https://flink.apache.org/visualizer</a> 可以看到它的执行计划。</p>
+<h4 id="yarn操作"><a href="#yarn操作" class="headerlink" title="yarn操作"></a>yarn操作</h4><p>在yarn上提交任务，有两种方式：</p>
+<ol>
+<li>启动一个yarn session</li>
+<li>直接将任务提交在yarn上</li>
+</ol>
+<p>启动yarn session，是从启动后，不管是否提交任务，这个session一直在yarn上运行。向yarn提交任务时，也只是在这个session下进行提交。如果提交的任务占满了yarn session，则新任务将不能提交，即使yarn还有一大部分资源可用。</p>
+<p>直接提交在yarn上，每次提交一个任务，则从yarn上获取资源，然后进行提交，运行完毕后，自动释放资源。</p>
+<p>在向yarn提交任务时，有两种模式，分别是：attach 模式和  detached 。默认是attach。两者的区别是，attach提交任务后，客户端会一直等待，直到任务结束。detached则是客户端和服务端完全分离，提交任务后客户端退出。</p>
+<p><strong>直接向yarn提交任务</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sh bin/flink run -m yarn-cluster -yn 2 -yqu root.xy_yarn_pool.development ../examples/streaming/WordCount.jar</span><br></pre></td></tr></table></figure>
+<p><strong>启动yarn session</strong></p>
+<p>向yarn上提交任务的第二种方式是，启动一个yarn session。需要先启动再提交。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sh bin/yarn-session.sh -h</span><br></pre></td></tr></table></figure>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sh bin/yarn-session.sh -n 4 -jm 1024m -tm 4096m -qu xy_yarn_pool.production</span><br></pre></td></tr></table></figure>
+<p>-n 参数：yarn上需要的容器个数。</p>
+<p>jm 参数：jobManager内存</p>
+<p>tm 参数：TaskManager内存</p>
+<p>启动yarn session后，则可以向yarn session来提交任务了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sh bin/flink run examples/batch/WordCount.jar</span><br></pre></td></tr></table></figure>
+<p>因为已经启动了一个yarn session，所以这个任务会直接提交到yarn上。提交后，可以在yarn上看到运行记录，结束后，task manager资源会释放。如果启动了多个yarn session，在提交任务时，可以通过yid来指定提交到哪个yarn session中。</p>
+<h4 id="scala-shell"><a href="#scala-shell" class="headerlink" title="scala shell"></a>scala shell</h4><p>scala shell用来在控制台编写flink代码。在调试程序时很有用。</p>
+<p>如果已经启动了一个yarn session。则可以启动scala shell remote模式。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sh bin/start-scala-shell.sh remote bigdata-1.baofoo.cn 8088</span><br></pre></td></tr></table></figure>
+<p>如果没有启动yarn session，可以使用local模式。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sh bin/start-scala-shell.sh <span class="built_in">local</span></span><br></pre></td></tr></table></figure>
+<h4 id="sql-client"><a href="#sql-client" class="headerlink" title="sql client"></a>sql client</h4><p>sql-client.sh 是用来启动sql客户端的。目前sql-client还处于测试阶段。启动sql-client后，则能使用sql来进行数据处理了。一般实际开发中很少使用。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>flink常用的客户端，就上面这部分了。生产环境下，一般是将任务提交在yarn上。所以，需要熟悉向yarn提交任务的几种方式即可。</p>
+
   </article>
   <aside class="table-content" id="site-toc">
   <div class="table-content-title">
@@ -176,7 +240,7 @@
     <span>目录</span>
   </div>
   <div class="table-content-main">
-    
+    <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Flink-客户端操作"><span class="toc-text">Flink 客户端操作</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#启动Flink集群"><span class="toc-text">启动Flink集群</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#flink-命令"><span class="toc-text">flink 命令</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#yarn操作"><span class="toc-text">yarn操作</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#scala-shell"><span class="toc-text">scala shell</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#sql-client"><span class="toc-text">sql client</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#总结"><span class="toc-text">总结</span></a></li></ol>
   </div>
 </aside>
   
@@ -193,6 +257,12 @@
       </div>
     </aside>
   
+  
+    <div class="passage-tags">
+     
+      <a href="/tags/flink/"><i class="fa fa-tags"></i>flink</a>
+    
+    </div>
   
 </div>
 
@@ -246,7 +316,7 @@
 
 <div class="bottom-bar">
   <div class="bottom-bar-left">
-    <a href="javascript:void(0);" data-enable="false">
+    <a href="/2019/10/24/Flink学习-四、Window-Time详解/" data-enable="true">
       <i class="fa fa-arrow-left"></i>
     </a>
     <a href="/2019/10/22/Flink学习-二、DataStream-API编程/" data-enable="true">

@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html>
+  
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="utf-8">
+  <meta name="author" content="Dong Yuanxin">
+  
+  
+  <title>Flink学习:五、状态管理与容错机制 | Belief</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  
+    <meta name="keywords" content="流计算,flink,">
+  
+
+  
+  <meta name="description" content="李忠友的小站">
+
+  
+
+  <script src="//cdn.jsdelivr.net/npm/leancloud-storage@3.11.1/dist/av-min.js" async></script>
+
+  
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML" async></script>
+  
+
+  
+    <script src="//unpkg.com/valine/dist/Valine.min.js" async></script>
+  
+
+  
+
+  <script>
+  // theme-ad's config script
+  // it can be used in every script
+  
+  window.AD_CONFIG = {
+    leancloud: {"appid":"Hyq9wkH495DgNHWhDQCOfQSp-gzGzoHsz","appkey":"WaR7nrzhliHj9aVwdQzkdlGd","comment":true,"count":true},
+    welcome: {"enable":true,"interval":30},
+    start_time: "2018-02-10",
+    passwords: ["efe07af7441da2b69c4a41e42e73be4db47f66010a56900788a458354a7373ec", ],
+    is_post: true,
+    lock: false,
+    author: "Dong Yuanxin",
+    share: {"twitter":true,"facebook":true,"weibo":true,"qq":true,"wechat":true},
+    mathjax: true,
+    page_type: "",
+    root: "/"
+  };
+</script>
+
+  <script src="/vendor/sha256.min.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/index.js"></script>
+<script src="/vendor/qrcode.min.js"></script>
+
+  
+    <link rel="icon" href="/images/favicon.ico">
+    <link rel="apple-touch-icon" href="/images/touch-icon.png">
+  
+
+  <link href="//netdna.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/index.css">
+<link rel="stylesheet" href="/styles/components/highlight/highlight.css">
+
+  
+</head>
+  <body>
+    <header class="site-header">
+  <div class="site-header-brand">
+    
+      <span class="site-header-brand-title">
+        <a href="/">GODBMW</a>
+      </span>
+    
+    
+      <span class="site-header-brand-motto"> | 安静写些东西</span>
+    
+  </div>
+  <div class="site-header-right">
+    <nav class="site-header-navigation">
+      
+        <a href="/" target="_self">首页</a>
+      
+        <a href="/archives/" target="_self">归档</a>
+      
+        <a href="/tags/" target="_self">标签</a>
+      
+        <a href="/categories/" target="_self">分类</a>
+      
+        <a href="/about/" target="_self">关于</a>
+      
+    </nav>
+    <div class="site-header-btn">
+      
+        <a href="https://github.com/wdzaslzy" target="_blank" id="site-github">
+          <i class="fa fa-github-alt"></i>
+        </a>
+      
+      <a href="javascript:void(0);" id="site-search">
+        <i class="fa fa-search"></i>
+      </a>
+      <a href="javascript:void(0);" id="site-nav-btn">
+        <i class="fa fa-ellipsis-v"></i>
+      </a>
+    </div>
+  </div>
+</header>
+<nav class="table-content" id="site-nav">
+  <div class="table-content-title">
+    <span>导航</span>
+  </div>
+  <div class="table-content-main">
+    <ol class="toc">
+      
+        <li class="toc-item">
+          <a href="/" target="_self">
+            首页
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/archives/" target="_self">
+            归档
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/tags/" target="_self">
+            标签
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/categories/" target="_self">
+            分类
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/about/" target="_self">
+            关于
+          </a>
+        </li>
+      
+    </ol>
+  </div>
+</nav>
+<div id="site-process"></div>
+    <main>
+      
+  <div class="passage">
+  <div class="passage-meta">
+    <span>
+      <i class="fa fa-calendar"></i>2019-10-29
+    </span>
+    
+      <span>
+        | <a href="/categories/流计算/"><i class="fa fa-bookmark"></i>流计算</a>
+      </span>
+    
+    
+      <span>
+        | <i class="fa fa-unlock-alt"></i>UNLOCK
+      </span>
+    
+  </div>
+  <h1 class="passage-title">
+    Flink学习:五、状态管理与容错机制
+  </h1>
+  
+  <article class="passage-article">
+    <h3 id="状态管理的基本概念"><a href="#状态管理的基本概念" class="headerlink" title="状态管理的基本概念"></a>状态管理的基本概念</h3><h4 id="什么是状态"><a href="#什么是状态" class="headerlink" title="什么是状态"></a>什么是状态</h4><p>关于状态的概念，我想用两个场景来概括它。</p>
+<p><strong>场景示例</strong></p>
+<p>一些资讯信息会被发送到消息队列里面。流处理引擎会消费消息队列里面的数据。</p>
+<p>场景一：提取每条资讯信息中的热词</p>
+<p>场景二：统计每条热词出现的总记录数</p>
+<p><img src="/2019/10/29/Flink学习-五、状态管理与容错机制/5_1.png" alt></p>
+<p>分析一下这两个场景的特征。</p>
+<p>场景一：</p>
+<ul>
+<li>每条资讯提取出来的热词与历史资讯无关</li>
+<li>相同资讯，产出结果相同</li>
+</ul>
+<p>场景二：</p>
+<ul>
+<li>产出结果与历史紧密相关</li>
+<li>相同资讯，产出结果不一定相同</li>
+</ul>
+<p><strong>概念总结</strong></p>
+<p>由这两种场景，我们可以大概总结出，状态就是用来记录历史中的某个结果，这个结果可以被用于未来的计算。</p>
+<p><strong>状态应用</strong></p>
+<p>下面是一些能够使用到状态的一些场景：</p>
+<ul>
+<li><p>去重</p>
+<blockquote>
+<p>保留历史中的key，将新进入但已存在的记录丢弃</p>
+</blockquote>
+</li>
+<li><p>数据统计</p>
+<blockquote>
+<p>如天猫双十一大屏计算总交易额</p>
+</blockquote>
+</li>
+<li><p>机器学习</p>
+<blockquote>
+<p>模型训练的一些参数</p>
+</blockquote>
+</li>
+<li><p>数据比较</p>
+<blockquote>
+<p>如本月的交易额需要与上月的交易额做比较，判断本月销售记录是否下滑</p>
+</blockquote>
+</li>
+<li><p>其他</p>
+</li>
+</ul>
+<h4 id="如何来管理状态"><a href="#如何来管理状态" class="headerlink" title="如何来管理状态"></a>如何来管理状态</h4><p><strong>传统流计算引擎如何来管理状态</strong></p>
+<p>通过上面的场景可以看出，这种“状态”是很有用的。那么传统的流处理引擎，是如何来管理状态的呢？</p>
+<p>答案比较遗憾，传统的流处理引擎比如：storm、spark streaming都没有“状态”的概念。但是，也可以通过其他方式来实现这种状态，就是手动管理。如将状态值写入HBase这样的数据库，使用的时候，从HBase来读取，使用完后更新HBase值。这样也会带来以下问题：</p>
+<ul>
+<li><p>流计算系统的任务和Hbase的数据存储有可能不在同一台机器上，导致性能会很差。因为经常会做远端的访问，走网络和存储</p>
+</li>
+<li><p>备份和恢复是比较困难。因为HBase是没有回滚的(事务提交失败的回滚操作)。</p>
+<blockquote>
+<p>例如点击广告时的计费操作。在高并发环境下，将计费金额存在hbase是行不通的，因为高并发下，hbase不能保证数据一致性。最好的方式是将结果写入mysql。但是这样性能会很差，因为事务。</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>理想的状态管理</strong></p>
+<p>那么，该怎么来管理状态呢？</p>
+<p>最直接的方式：将状态保存在内存中。</p>
+<p>流式处理一般有如下特征：</p>
+<ul>
+<li>7 * 24 小时运行</li>
+<li>数据不丢不重，恰好计算一次</li>
+<li>数据实时产出，不延迟</li>
+</ul>
+<p>对于这样的流处理，如果将状态保存入内存，一两天的数据内存还足够支撑，如果长期运行下去，内存势必会溢出，最终导致整个流处理任务失败而停止。除此之外，它也不具备数据恢复功能。一旦任务失败，所有保存的状态将被清除，需要从头开始处理数据。因此，将状态保存在内存中，是不合理的。</p>
+<p>理想的状态管理，需要具有以下特点：</p>
+<ul>
+<li>易用<ul>
+<li>具有丰富的数据结构</li>
+<li>具有多样的组织形式</li>
+<li>简洁的api</li>
+</ul>
+</li>
+<li>高效<ul>
+<li>快速读写</li>
+<li>可方便的横向扩展(如增加节点)</li>
+<li>状态管理备份不影响整体流处理性能</li>
+</ul>
+</li>
+<li>可靠<ul>
+<li>持久化</li>
+<li>不丢不重</li>
+<li>具备容错能力</li>
+</ul>
+</li>
+</ul>
+<p>上面是理想的状态管理特点，下面一起来看看flink提供的状态管理吧。</p>
+<h3 id="状态的类型及使用实例"><a href="#状态的类型及使用实例" class="headerlink" title="状态的类型及使用实例"></a>状态的类型及使用实例</h3><p>在理想状态管理的基础上，Flink提供了丰富的状态管理和高效的容错机制。</p>
+<h4 id="Flink状态概览"><a href="#Flink状态概览" class="headerlink" title="Flink状态概览"></a>Flink状态概览</h4><p><img src="/2019/10/29/Flink学习-五、状态管理与容错机制/5_2.png" alt></p>
+<h4 id="Keyed-State-介绍"><a href="#Keyed-State-介绍" class="headerlink" title="Keyed State 介绍"></a>Keyed State 介绍</h4><p><strong>keyed state 概念</strong></p>
+<p> <code>Keyed State</code> 通常和 key 相关，仅可使用在 <code>KeyedStream</code> 的方法和算子中。 </p>
+<p>你可以把 Keyed State 看作分区或者共享的 Operator State, 而且每个 key 仅出现在一个分区内。 逻辑上每个 keyed-state 和唯一元组 &lt;算子并发实例, key&gt; 绑定，由于每个 key 仅”属于” 算子的一个并发，因此简化为 &lt;算子, key&gt;。(ps:该段翻译自flink官网)。</p>
+<p>对上一句话可能很难理解。我根据代码和图示来解释这个概念。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();</span><br><span class="line">DataStreamSource&lt;String&gt; dataSource = env.readTextFile(<span class="string">"xxx"</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">//设置并行度</span></span><br><span class="line">env.setParallelism(<span class="number">3</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">//根据key进行分组</span></span><br><span class="line">KeyedStream&lt;Object, Tuple&gt; keyedStream = dataSource.map(word =&gt; (word, <span class="number">1</span>)).keyBy(<span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+<p><img src="/2019/10/29/Flink学习-五、状态管理与容错机制/5_3.png" alt></p>
+<p>上方的代码通过keyBy之后可以看出，创建了一个KeyedStream实例，在集群上运行时，假设flink一共5个节点，设置的并发度是3，那么有3个节点在工作。因此，每个节点上会创建一个KeyedStream实例，一共3个实例。因此，keyed state与&lt;实例，key&gt;做绑定。可以粗略的认为，一个key一个state。</p>
+<p><strong>keyed state 结构图</strong></p>
+<p><img src="/2019/10/29/Flink学习-五、状态管理与容错机制/5_4.jpg" alt></p>
+<table>
+<thead>
+<tr>
+<th>state</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ValueState</td>
+<td>类型为T的单值状态。这个状态与对应的key绑定。</td>
+</tr>
+<tr>
+<td>MapState</td>
+<td>类型为Map的状态。</td>
+</tr>
+<tr>
+<td>ListState</td>
+<td>key上的多个值</td>
+</tr>
+<tr>
+<td>ReducingState</td>
+<td>这种状态通过用户传入的reduceFunction，每次调用<code>add</code>方法添加值的时候，会调用reduceFunction，最后合并到一个单一的状态值。</td>
+</tr>
+<tr>
+<td>AggregatingState</td>
+<td>在计算一些均值时，可以使用该状态</td>
+</tr>
+</tbody>
+</table>
+<p><strong>keyed state 实例</strong></p>
+<p>上面是keyed state的一些介绍，下面将用一个实例来看下如何使用keyed state。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">WordCountStateDemo</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">WordCountState</span> <span class="keyword">extends</span></span></span><br><span class="line"><span class="class">            <span class="title">RichFlatMapFunction</span>&lt;<span class="title">Tuple2</span>&lt;<span class="title">String</span>, <span class="title">Integer</span>&gt;, <span class="title">Tuple2</span>&lt;<span class="title">String</span>, <span class="title">Integer</span>&gt;&gt; </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">transient</span> ValueState&lt;Integer&gt; countState;</span><br><span class="line"></span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">open</span><span class="params">(Configuration parameters)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">            ValueStateDescriptor&lt;Integer&gt; stateDescriptor = <span class="keyword">new</span> ValueStateDescriptor&lt;&gt;(<span class="string">"WordCount"</span>,</span><br><span class="line">                    Integer.class);</span><br><span class="line">            countState = getRuntimeContext().getState(stateDescriptor);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">flatMap</span><span class="params">(Tuple2&lt;String, Integer&gt; input,</span></span></span><br><span class="line"><span class="function"><span class="params">                Collector&lt;Tuple2&lt;String, Integer&gt;&gt; collector)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">            Integer count = countState.value();</span><br><span class="line">            <span class="keyword">if</span> (count == <span class="keyword">null</span>) &#123;</span><br><span class="line">                count = <span class="number">0</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            count += <span class="number">1</span>;</span><br><span class="line">            countState.update(count);</span><br><span class="line">            collector.collect(<span class="keyword">new</span> Tuple2&lt;&gt;(input.f0, count));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();</span><br><span class="line">        DataStreamSource&lt;String&gt; dataSource = env.readTextFile(<span class="string">"E:\\test.txt"</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">//设置并行度</span></span><br><span class="line">        env.setParallelism(<span class="number">3</span>);</span><br><span class="line"></span><br><span class="line">        SingleOutputStreamOperator&lt;Tuple2&lt;String, Integer&gt;&gt; wordStream = dataSource</span><br><span class="line">                .flatMap(<span class="keyword">new</span> FlatMapFunction&lt;String, Tuple2&lt;String, Integer&gt;&gt;() &#123;</span><br><span class="line">                    <span class="meta">@Override</span></span><br><span class="line">                    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">flatMap</span><span class="params">(String s, Collector&lt;Tuple2&lt;String, Integer&gt;&gt; collector)</span></span></span><br><span class="line"><span class="function">                            <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">                        String[] words = s.split(<span class="string">" "</span>);</span><br><span class="line">                        <span class="keyword">for</span> (String word : words) &#123;</span><br><span class="line">                            collector.collect(<span class="keyword">new</span> Tuple2&lt;&gt;(word, <span class="number">1</span>));</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;);</span><br><span class="line"></span><br><span class="line">        SingleOutputStreamOperator&lt;Tuple2&lt;String, Integer&gt;&gt; wordCount = wordStream</span><br><span class="line">                .keyBy(<span class="number">0</span>)</span><br><span class="line">                .flatMap(<span class="keyword">new</span> WordCountState());</span><br><span class="line"></span><br><span class="line">        wordCount.addSink(<span class="keyword">new</span> PrintSinkFunction&lt;&gt;());</span><br><span class="line"></span><br><span class="line">        env.execute();</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight tex"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">输入：</span><br><span class="line">hello java</span><br><span class="line">hello scala</span><br><span class="line">hello flink</span><br><span class="line">hello spark</span><br><span class="line">spark good</span><br><span class="line"></span><br><span class="line">输出：</span><br><span class="line">3&gt; (flink,1)</span><br><span class="line">3&gt; (good,1)</span><br><span class="line">1&gt; (hello,1)</span><br><span class="line">1&gt; (hello,2)</span><br><span class="line">1&gt; (java,1)</span><br><span class="line">1&gt; (hello,3)</span><br><span class="line">1&gt; (scala,1)</span><br><span class="line">1&gt; (spark,1)</span><br><span class="line">1&gt; (hello,4)</span><br><span class="line">1&gt; (spark,2)</span><br></pre></td></tr></table></figure>
+<p>通过前面介绍的keyed state概念与代码相结合，可以看到，代码中只定义了一个ValueState，可能会误以为它会将所有word进行求和统计，最后出来一个累加的和，而实际输出却发现根据key进行了区分。正好验证了上面提到的，在keyed state下，一个state对应一个key。</p>
+<p>理论上，一个ValueState即可以满足所有的需求。只不过ValueState在某些复杂场景下，效率比较低，因此便衍生出了MapState、ListState等。</p>
+<p><strong>状态的有效期</strong></p>
+<p>所有的状态都可以设置有效期(TTL)，如果设置了有效期，则过了有效期后，这个状态将会被自动清除。在使用状态的TTL之前，需要先构建一个 <code>StateTtlConfig</code>  对象。在该对象中来设置对应的有效期时长。设置方式如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">StateTtlConfig ttlConfig = StateTtlConfig</span><br><span class="line">    .newBuilder(Time.seconds(<span class="number">1</span>))</span><br><span class="line">    .setUpdateType(StateTtlConfig.UpdateType.OnCreateAndWrite)</span><br><span class="line">    .setStateVisibility(StateTtlConfig.StateVisibility.NeverReturnExpired)</span><br><span class="line">    .build();</span><br><span class="line">    </span><br><span class="line">ValueStateDescriptor&lt;String&gt; stateDescriptor = <span class="keyword">new</span> ValueStateDescriptor&lt;&gt;(<span class="string">"text state"</span>, String.class);</span><br><span class="line">stateDescriptor.enableTimeToLive(ttlConfig);</span><br></pre></td></tr></table></figure>
+<p>TTL配置的几个选项解释：</p>
+<p>setUpdateType是用来设置更新策略的。一共有3个参数可以设置：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** TTL is disabled. State does not expire. */</span></span><br><span class="line"><span class="comment">/** 不设置TTL，状态会永不过期 **/</span></span><br><span class="line">Disabled,</span><br><span class="line"><span class="comment">/** Last access timestamp is initialised when state is created and updated on every write operation. */</span></span><br><span class="line"><span class="comment">/** 在创建和更新状态的时候重新设置ttl **/</span></span><br><span class="line">OnCreateAndWrite,</span><br><span class="line"><span class="comment">/** The same as &lt;code&gt;OnCreateAndWrite&lt;/code&gt; but also updated on read. */</span></span><br><span class="line"><span class="comment">/** 读状态时，也更新ttl **/</span></span><br><span class="line">OnReadAndWrite</span><br></pre></td></tr></table></figure>
+<p>setStateVisibility用来设置过期后是否还能被查询到。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** Return expired user value if it is not cleaned up yet. */</span></span><br><span class="line"><span class="comment">/** 如果该状态值还未被清除(clean方法清除)，则返回。 **/</span></span><br><span class="line">ReturnExpiredIfNotCleanedUp,</span><br><span class="line"><span class="comment">/** Never return expired user value. */</span></span><br><span class="line"><span class="comment">/** 过期后就不再返回，在一些敏感数据场景下非常有用。 **/</span></span><br><span class="line">NeverReturnExpired</span><br></pre></td></tr></table></figure>
+<p><strong>过期状态的清理</strong></p>
+<p>默认情况下，用户在读取过期状态时，才会被删除。如果不显示读取，则不会被删除(这种方式未来可能会发生变化)。也可以更改清除方式。</p>
+<ol>
+<li><p>全量快照清除</p>
+<blockquote>
+<p>在做全量checkpoint时，清除过期状态。cleanupFullSnapshot()</p>
+</blockquote>
+</li>
+<li><p>增量快照清除</p>
+<blockquote>
+<p>增量快照清理是指，只要有任何一个状态被查看，则清理过期的状态。如果频繁的进行查看，则会导致频繁的清理，因此，该方式也做了进一步处理，支持定期清理。</p>
+</blockquote>
+</li>
+</ol>
+<h4 id="Operator-State-介绍"><a href="#Operator-State-介绍" class="headerlink" title="Operator State 介绍"></a>Operator State 介绍</h4><p>operator state是没有分组的一个状态。如果按上面的这个WordCount来分析的话，Operator State就是将所有的单词个数进行统计。</p>
+<p>operator state 与 keyed state 分别存在两种形式：managed and raw.两种形式有如下区别：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>managed</th>
+<th>raw</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>状态管理方式</td>
+<td>flink runtime 管理</td>
+<td>用户自己管理</td>
+</tr>
+<tr>
+<td>状态数据结构</td>
+<td>value、list、map……</td>
+<td>byte[]</td>
+</tr>
+<tr>
+<td>使用场景</td>
+<td>绝大多数场景</td>
+<td>用户自定义算子时可以使用</td>
+</tr>
+</tbody>
+</table>
+<h3 id="容错机制与故障恢复"><a href="#容错机制与故障恢复" class="headerlink" title="容错机制与故障恢复"></a>容错机制与故障恢复</h3><p>如果出现系统故障或网络抖动等场景使正在运行的服务停止，为了快速恢复宕机前的状态，flink提供了checkpoint和savepoint机制。他们都是将状态进行持久性保存。</p>
+<h4 id="checkpoint"><a href="#checkpoint" class="headerlink" title="checkpoint"></a>checkpoint</h4><p>默认情况下，checkpoint是未开启的。如果在处理流数据的时候涉及到状态管理，则可以在flink环境下开启checkpoint。开启checkpoint方法：enableCheckpointing(n)。n表示检查时间间隔，单位毫秒。</p>
+<p>除了参数n之外，还有其他一些参数：</p>
+<ul>
+<li><p>设置一致性</p>
+<blockquote>
+<p>CheckpointingMode.EXACTLY_ONCE   恰好一次</p>
+<p>CheckpointingMode.AT_LEAST_ONCE  至少一次</p>
+<p>两种模式，所消耗的代价是不同的。恰好一次精确保证了数据的一致性，但延迟较高。如果不能容忍重复，则可以设置为恰好一次。</p>
+<p>至少一次是指，每个数据至少会有一个，可能会出现多次的场景。如果数据重复不影响输出结果，则可以设置为至少一次。因为至少一次延迟相对较低。</p>
+</blockquote>
+</li>
+<li><p>设置超时时间</p>
+<blockquote>
+<p>默认10分钟</p>
+</blockquote>
+</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();</span><br><span class="line">env.enableCheckpointing(<span class="number">1000</span>, CheckpointingMode.AT_LEAST_ONCE);</span><br><span class="line">CheckpointConfig checkpointConfig = env.getCheckpointConfig();</span><br><span class="line">checkpointConfig.setCheckpointTimeout(<span class="number">10000</span>);</span><br></pre></td></tr></table></figure>
+<h4 id="savepoint"><a href="#savepoint" class="headerlink" title="savepoint"></a>savepoint</h4><p>savepoint 的作用与checkpoint作用相同，主要目的是用来恢复流的。区别在于，checkpoint是由flink管理的，而savepoint是由用户来管理的。savepoint可以通过flink命令来提交。savepoint一般用于作业的更新操作。</p>
+<h4 id="状态保存机制"><a href="#状态保存机制" class="headerlink" title="状态保存机制"></a>状态保存机制</h4><p>启动checkpoint后，检查点是如何被保存的呢？</p>
+<p>检查点可以被保存在JobManager内存、文件系统、数据库等存储引擎中，该存储方案是可以被配置的。默认情况下，状态是保存在TaskManager内存中，而状态检查点是保存在JobManager中。如果要保存一些比较大的状态，可以使用：setStateBackend()来配置状态检查点的具体保存位置。</p>
+<p>注意：</p>
+<ul>
+<li>请勿将状态(state)和状态检查点(checkpoint)混淆</li>
+</ul>
+<p>flink提供了三种保存方式：</p>
+<ul>
+<li>MemoryStateBackend</li>
+<li>FsStateBackend</li>
+<li>RocksDBStateBackend</li>
+</ul>
+<p><strong>MemoryStateBackend</strong></p>
+<p><code>MemoryStateBackend</code>很好理解，就是将状态检查点写入到内存。默认就是该模式。</p>
+<p>MemoryStateBackend并不是最好的保存方式，它具有以下局限性：</p>
+<ul>
+<li>默认情况下，每个状态的大小限制为5 MB。不过也可以在MemoryStateBackend的构造函数中增加此值。</li>
+<li>无论配置的最大状态大小如何，状态都不能大于容器的大小</li>
+<li>AggregateState必须适用MemoryStateBackend</li>
+</ul>
+<p>推荐使用该方式的场景一般如下：</p>
+<ul>
+<li>本地开发和调试</li>
+<li>几乎没有状态的任务，或者状态值会很小</li>
+</ul>
+<p>其他场景，建议不使用，因为内存是有限的。</p>
+<p><strong>FsStateBackend</strong></p>
+<p><code>FsStateBackend</code>很好理解了，就是将状态检查点写入文件系统。</p>
+<p>该模式，会将TaskManager中的状态记录保存到文件系统，将元数据信息保存至JobManager中(如果在HA集群下，可能会保存在JobManager的检查点中)。</p>
+<p>推荐使用该模式的场景：</p>
+<ul>
+<li>job的状态结果很大</li>
+<li>window很长</li>
+<li>所有高可用性设置</li>
+</ul>
+<p><strong>RocksDBStateBackend</strong></p>
+<p><code>RocksDBStateBackend</code>和FsStateBackend如出一辙。不同点在于，FsStateBackend中的状态(state)是保存在TaskManager的内存中的，而RocksDBStateBackend中的状态(state)是保存在TaskManager的数据目录中。经过checkpoint后，TaskManager的目录下的状态数据会被保存在指定的fs系统中。</p>
+<p>参考文献：</p>
+<p><a href="https://ci.apache.org/projects/flink/flink-docs-release-1.9/zh/dev/stream/state/state.html" target="_blank" rel="noopener">flink官网介绍</a></p>
+
+  </article>
+  <aside class="table-content" id="site-toc">
+  <div class="table-content-title">
+    <i class="fa fa-arrow-right fa-lg" id="site-toc-hide-btn"></i>
+    <span>目录</span>
+  </div>
+  <div class="table-content-main">
+    <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#状态管理的基本概念"><span class="toc-text">状态管理的基本概念</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#什么是状态"><span class="toc-text">什么是状态</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#如何来管理状态"><span class="toc-text">如何来管理状态</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#状态的类型及使用实例"><span class="toc-text">状态的类型及使用实例</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Flink状态概览"><span class="toc-text">Flink状态概览</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Keyed-State-介绍"><span class="toc-text">Keyed State 介绍</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Operator-State-介绍"><span class="toc-text">Operator State 介绍</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#容错机制与故障恢复"><span class="toc-text">容错机制与故障恢复</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#checkpoint"><span class="toc-text">checkpoint</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#savepoint"><span class="toc-text">savepoint</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#状态保存机制"><span class="toc-text">状态保存机制</span></a></li></ol></li></ol>
+  </div>
+</aside>
+  
+    <aside class="passage-copyright">
+      <div>本文作者: 李忠友</div>
+      
+        <div>
+          原文链接: 
+          <a href target="_blank">https://wdzaslzy.github.io/2019/10/29/Flink学习-五、状态管理与容错机制/</a>
+        </div>
+      
+      <div>
+        版权声明: 本博客所有文章除特别声明外, 禁止转载, 转载请注明出处!
+      </div>
+    </aside>
+  
+  
+    <div class="passage-tags">
+     
+      <a href="/tags/flink/"><i class="fa fa-tags"></i>flink</a>
+    
+    </div>
+  
+</div>
+
+    </main>
+    
+      
+<div class="site-comment-contanier" data-plateform="leancloud">
+  
+    <p id="site-comment-info">
+      <i class="fa fa-spinner fa-spin"></i> 评论加载中
+    </p>
+    <div id="site-comment"></div>
+  
+</div>
+    
+    <div class="site-footer-wrapper">
+</div>
+    <div id="site-layer" style="display:none;">
+  <div class="site-layer-content">
+    <div class="site-layer-header">
+      <span class="site-layer-header-title" id="site-layer-title"></span>
+      <i class="fa fa-close" id="site-layer-close"></i>
+    </div>
+    <div class="site-layer-body" id="site-layer-container">
+      <div class="site-layer-input" id="site-layer-search" style="display: none;">
+        <input type="text">
+        <i class="fa fa-search"></i>
+      </div>
+      <div class="site-layer-reward" id="site-layer-reward" style="display: none;">
+        
+          <div>
+            <img src="/images/wechat.png" alt="WeChat">
+            
+              <p>WeChat</p>
+            
+          </div>
+        
+          <div>
+            <img src="/images/alipay.png" alt="AliPay">
+            
+              <p>AliPay</p>
+            
+          </div>
+        
+      </div>
+      <div id="site-layer-welcome" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+    
+
+<div class="bottom-bar">
+  <div class="bottom-bar-left">
+    <a href="javascript:void(0);" data-enable="false">
+      <i class="fa fa-arrow-left"></i>
+    </a>
+    <a href="/2019/10/24/Flink学习-四、Window-Time详解/" data-enable="true">
+      <i class="fa fa-arrow-right"></i>
+    </a>
+  </div>
+  <div class="bottom-bar-right">
+    <a href="javascript:void(0);" data-enable="true" id="site-toc-show-btn">
+      <i class="fa fa-bars"></i>
+    </a>
+    
+      <a href="#site-comment" data-enable="true">
+        <i class="fa fa-commenting"></i>
+      </a>
+    
+    <a href="javascript:void(0);" id="site-toggle-share-btn">
+      <i class="fa fa-share-alt"></i>
+    </a>
+    <a href="javascript:void(0);" id="site-reward">
+      <i class="fa fa-thumbs-up"></i>
+    </a>
+    <a href="javascript:void(0);" id="back-top-btn">
+      <i class="fa fa-chevron-up"></i>
+    </a>
+  </div>
+</div>
+    <div id="share-btn">
+  
+    <a id="share-btn-twitter" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-twitter"></i>
+    </a>
+  
+  
+    <a id="share-btn-facebook" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-facebook"></i>
+    </a>
+  
+  
+    <a id="share-btn-weibo" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-weibo"></i>
+    </a>
+  
+  
+    <a id="share-btn-qq" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-qq"></i>
+    </a>
+  
+  
+    <a id="share-btn-wechat" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-wechat"></i>
+    </a>
+  
+</div>
+    
+
+
+
+
+
+    
+  </body>
+</html>
