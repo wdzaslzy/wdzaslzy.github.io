@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html>
+  
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="utf-8">
+  <meta name="author" content="Dong Yuanxin">
+  
+  
+  <title>面试总结:数据结构+算法 | Belief</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  
+    <meta name="keywords" content="面试总结,data_structure,">
+  
+
+  
+  <meta name="description" content="李忠友的小站">
+
+  
+
+  <script src="//cdn.jsdelivr.net/npm/leancloud-storage@3.11.1/dist/av-min.js" async></script>
+
+  
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML" async></script>
+  
+
+  
+    <script src="//unpkg.com/valine/dist/Valine.min.js" async></script>
+  
+
+  
+
+  <script>
+  // theme-ad's config script
+  // it can be used in every script
+  
+  window.AD_CONFIG = {
+    leancloud: {"appid":"Hyq9wkH495DgNHWhDQCOfQSp-gzGzoHsz","appkey":"WaR7nrzhliHj9aVwdQzkdlGd","comment":true,"count":true},
+    welcome: {"enable":true,"interval":30},
+    start_time: "2018-02-10",
+    passwords: ["efe07af7441da2b69c4a41e42e73be4db47f66010a56900788a458354a7373ec", ],
+    is_post: true,
+    lock: false,
+    author: "Dong Yuanxin",
+    share: {"twitter":true,"facebook":true,"weibo":true,"qq":true,"wechat":true},
+    mathjax: true,
+    page_type: "",
+    root: "/"
+  };
+</script>
+
+  <script src="/vendor/sha256.min.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/index.js"></script>
+<script src="/vendor/qrcode.min.js"></script>
+
+  
+    <link rel="icon" href="/images/favicon.ico">
+    <link rel="apple-touch-icon" href="/images/touch-icon.png">
+  
+
+  <link href="//netdna.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/index.css">
+<link rel="stylesheet" href="/styles/components/highlight/highlight.css">
+
+  
+</head>
+  <body>
+    <header class="site-header">
+  <div class="site-header-brand">
+    
+      <span class="site-header-brand-title">
+        <a href="/">GODBMW</a>
+      </span>
+    
+    
+      <span class="site-header-brand-motto"> | 安静写些东西</span>
+    
+  </div>
+  <div class="site-header-right">
+    <nav class="site-header-navigation">
+      
+        <a href="/" target="_self">首页</a>
+      
+        <a href="/archives/" target="_self">归档</a>
+      
+        <a href="/tags/" target="_self">标签</a>
+      
+        <a href="/categories/" target="_self">分类</a>
+      
+        <a href="/about/" target="_self">关于</a>
+      
+    </nav>
+    <div class="site-header-btn">
+      
+        <a href="https://github.com/wdzaslzy" target="_blank" id="site-github">
+          <i class="fa fa-github-alt"></i>
+        </a>
+      
+      <a href="javascript:void(0);" id="site-search">
+        <i class="fa fa-search"></i>
+      </a>
+      <a href="javascript:void(0);" id="site-nav-btn">
+        <i class="fa fa-ellipsis-v"></i>
+      </a>
+    </div>
+  </div>
+</header>
+<nav class="table-content" id="site-nav">
+  <div class="table-content-title">
+    <span>导航</span>
+  </div>
+  <div class="table-content-main">
+    <ol class="toc">
+      
+        <li class="toc-item">
+          <a href="/" target="_self">
+            首页
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/archives/" target="_self">
+            归档
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/tags/" target="_self">
+            标签
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/categories/" target="_self">
+            分类
+          </a>
+        </li>
+      
+        <li class="toc-item">
+          <a href="/about/" target="_self">
+            关于
+          </a>
+        </li>
+      
+    </ol>
+  </div>
+</nav>
+<div id="site-process"></div>
+    <main>
+      
+  <div class="passage">
+  <div class="passage-meta">
+    <span>
+      <i class="fa fa-calendar"></i>2019-11-13
+    </span>
+    
+      <span>
+        | <a href="/categories/面试总结/"><i class="fa fa-bookmark"></i>面试总结</a>
+      </span>
+    
+    
+      <span>
+        | <i class="fa fa-unlock-alt"></i>UNLOCK
+      </span>
+    
+  </div>
+  <h1 class="passage-title">
+    面试总结:数据结构+算法
+  </h1>
+  
+  <article class="passage-article">
+    <h3 id="数据结构-算法"><a href="#数据结构-算法" class="headerlink" title="数据结构 + 算法"></a>数据结构 + 算法</h3><p><strong>1、数组的插入和查找的时间复杂度</strong></p>
+<p>插入：</p>
+<ul>
+<li>插在最后：O(1)</li>
+<li>插入中间：O(n)</li>
+</ul>
+<p>查找：</p>
+<ul>
+<li>依次查找：O(n)</li>
+<li>二分查找：O(log~2~n)</li>
+</ul>
+<p><strong>2、二分查找的实现思路</strong></p>
+<p>时间复杂度：O(log~2~ n)</p>
+<p>例如在1-100中找出数字33</p>
+<table>
+<thead>
+<tr>
+<th>查询次数</th>
+<th>中间值</th>
+<th>与目标值比较</th>
+<th>折半后的新数组</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>50</td>
+<td>偏大</td>
+<td>1 - 49</td>
+</tr>
+<tr>
+<td>2</td>
+<td>25</td>
+<td>偏小</td>
+<td>26 - 49</td>
+</tr>
+<tr>
+<td>3</td>
+<td>37</td>
+<td>偏大</td>
+<td>26 - 36</td>
+</tr>
+<tr>
+<td>4</td>
+<td>31</td>
+<td>偏小</td>
+<td>32 - 36</td>
+</tr>
+<tr>
+<td>5</td>
+<td>34</td>
+<td>偏大</td>
+<td>32 - 33</td>
+</tr>
+<tr>
+<td>6</td>
+<td>32</td>
+<td>偏小</td>
+<td>33</td>
+</tr>
+<tr>
+<td>7</td>
+<td>33</td>
+<td>相等</td>
+<td>返回结果</td>
+</tr>
+</tbody>
+</table>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">search</span><span class="params">(<span class="keyword">int</span>[] a, <span class="keyword">int</span> target)</span></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (a.length == <span class="number">0</span>) &#123;</span><br><span class="line">        System.out.println(<span class="string">"没找到"</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">int</span> start = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">int</span> end = a.length;</span><br><span class="line">    <span class="keyword">int</span> index = a.length/<span class="number">2</span>;</span><br><span class="line">    <span class="keyword">if</span> (a[index] &gt; target) &#123;</span><br><span class="line">        end = index;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (a[index] &lt; target)&#123;</span><br><span class="line">        start = index + <span class="number">1</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">"找到了"</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    search(Arrays.copyOfRange(a, start, end), target);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>3、二分查找的前提是数组要先排好序，排序常见的几种方式有哪些。</strong></p>
+<ul>
+<li>冒泡</li>
+<li>选择</li>
+<li>插入</li>
+<li>归并</li>
+<li>希尔</li>
+<li>快排</li>
+</ul>
+<p><img src="/2019/11/13/面试总结-数据结构-算法/冒泡排序思想.png" alt="img"></p>
+<p><img src="/2019/11/13/面试总结-数据结构-算法/选择排序.png" alt="img"></p>
+<p><img src="/2019/11/13/面试总结-数据结构-算法/插入排序.png" alt="img"></p>
+<p><img src="/2019/11/13/面试总结-数据结构-算法/1573550171893.png" alt="1573550171893"></p>
+<p>希尔排序</p>
+<p>希尔排序，是在插入排序的基础上的一个改进。插入排序，如果一个完全倒序的数组进行正序排序，效率和冒泡一样，因为每次比较后都要将后面的值对应向后移动一位。最佳的排序就是一个完全正序的，每次都比较一次，不需要移动。</p>
+<p>所以，如果要优化插入排序，其目的就是尽量减少数据移动项。如何才能做到这点呢？希尔排序思想，就是用来解决这个问题。</p>
+<p>希尔排序的思想是，将一个数组，进行分组，分组的思想是，每一组的数组长度逐步由小变大。一般间隔n个值划分，两个数之间的间隔定义为增量。然后依次对分组后的数组进行排序，排完一遍后，接着分组。举例：</p>
+<p>8 9 1 7 4 6 2 5 0 3</p>
+<p>时间间隔，可以考虑使用Kunth间隔序列来决定。通过递归的方式，去计算下一次的时间间隔。公式为：h = 3*h + 1。</p>
+<p>上面的数组，长度为10，当h = 1时，下一次间隔为4，即，间隔为1的最多支持长度为4的数组，间隔为4是，支持长度为13的数组。那么，我们第一次的时间间隔可以取4增量。分组后如下：</p>
+<p><img src="/2019/11/13/面试总结-数据结构-算法/clipboard.png" alt="img"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ShellSort</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">fun</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span>[] arr = <span class="keyword">new</span> <span class="keyword">int</span>[]&#123;<span class="number">8</span>, <span class="number">9</span>, <span class="number">1</span>, <span class="number">7</span>, <span class="number">4</span>, <span class="number">6</span>, <span class="number">2</span>, <span class="number">5</span>, <span class="number">0</span>, <span class="number">3</span>&#125;;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">int</span> h = <span class="number">1</span>;</span><br><span class="line">        <span class="keyword">while</span> (h &lt; arr.length / <span class="number">3</span>) &#123;</span><br><span class="line">            h = <span class="number">3</span> * h + <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        insertSortBySpace(arr, h);</span><br><span class="line">        System.out.println(Arrays.toString(arr));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//插入排序</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">insertSort</span><span class="params">(<span class="keyword">int</span>[] arr)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt; arr.length; i++) &#123;</span><br><span class="line">            <span class="keyword">int</span> index = -<span class="number">1</span>;</span><br><span class="line">            <span class="keyword">int</span> temp = arr[i];</span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> j = i - <span class="number">1</span>; j &gt;= <span class="number">0</span>; j--) &#123;</span><br><span class="line">                <span class="keyword">if</span> (arr[i] &gt; arr[j]) &#123;</span><br><span class="line">                    index = j;</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> m = index; m &lt; i; m++) &#123;</span><br><span class="line">                <span class="keyword">int</span> t = arr[m + <span class="number">1</span>];</span><br><span class="line">                arr[m + <span class="number">1</span>] = temp;</span><br><span class="line">                temp = t;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//插入排序，指定数组中间隔为n的数进行排</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">insertSortBySpace</span><span class="params">(<span class="keyword">int</span>[] arr, <span class="keyword">int</span> space)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (space &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> n = <span class="number">0</span>; n &lt; space; n++) &#123;</span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> i = n + space; i &lt; arr.length; i += space) &#123;</span><br><span class="line">                <span class="keyword">int</span> index = n - space;</span><br><span class="line">                <span class="keyword">int</span> temp = arr[i];</span><br><span class="line">                <span class="keyword">for</span> (<span class="keyword">int</span> j = i - space; j &gt;= <span class="number">0</span>; j -= space) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (arr[i] &gt; arr[j]) &#123;</span><br><span class="line">                        index = j;</span><br><span class="line">                        <span class="keyword">break</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">for</span> (<span class="keyword">int</span> m = index; m &lt; i; m += space) &#123;</span><br><span class="line">                    <span class="keyword">int</span> t = arr[m + space];</span><br><span class="line">                    arr[m + space] = temp;</span><br><span class="line">                    temp = t;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        insertSortBySpace(arr, (space - <span class="number">1</span>) / <span class="number">3</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码思路解释：<br>第一个for循环，标明一共有space个组合，分别对每个组合进行插入排序<br>第二个for循环，从n + space开始，它的值作为待插入的值，取第一个无意义，所以从n+space开始，每次增加都以space为增量增加。即可以确保(n, n+space, 2*space+n…..)为一组。<br>第三个for循环，从已经排好序的组合中倒序遍历，依次判定arr[i]的具体位置，当发现合适的位置，先标记该位置。<br>第四个for循环，是用来将arr[i]的值放在标记位置之后的一位，并且让arr中该位后面的记录向后移动一位。<br>因为 m 的最大值是 i - space，所以，arr[m+space]的最大值是a[i]，而 i 又是小于 arr.length的，所以不会出现数组越界情况。</p>
+<p><strong>4、数组的优缺点</strong></p>
+<p>优点：get速度快，一旦知道下标，就能get结果。</p>
+<blockquote>
+<p>get不包括查询下标时间。网上说的查询时间快，主要是针对已经排好序的数组进行二分查找。数组中实际存着值的地址(家在哪)，知道这个地址，就能快速拿到值。</p>
+</blockquote>
+<p>缺点：</p>
+<ul>
+<li><p>插入速度慢</p>
+<blockquote>
+<p>每插入一个值(非末尾)，该值后面的数据都要往后移动。(搬家)</p>
+</blockquote>
+</li>
+<li><p>不易扩展，一旦定好长度，扩展需要重新定义**</p>
+</li>
+</ul>
+<p>应用：ArrayList</p>
+<p><strong>5、链表的结构</strong></p>
+<p><img src="/2019/11/13/面试总结-数据结构-算法/clipboard-1573551785239.png" alt="img"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Link</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> value;</span><br><span class="line">    <span class="keyword">private</span> Link next;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>链表是嵌套型的。</p>
+<p><strong>6、链表的插入和查询时间复杂度</strong></p>
+<p>插入：O(1) </p>
+<blockquote>
+<p>父Link的next设为插入Link，插入的Link的next设为原父Link的next</p>
+</blockquote>
+<p>查询：O(n)</p>
+<blockquote>
+<p>从头依次找到尾</p>
+</blockquote>
+<p><strong>7、链表的优缺点</strong></p>
+<p>优点：插入快、无限扩展</p>
+<p>缺点：查询慢</p>
+<p>应用：LinkedList</p>
+<p><strong>8、哈希表的结构</strong></p>
+<p>哈希表由数组和链表同时组成。数组里面存着hash值，链表里面存着实际值。</p>
+<p><img src="/2019/11/13/面试总结-数据结构-算法/clipboard-1573552322190.png" alt="img"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HashTable</span> </span>&#123;</span><br><span class="line">    Link[] hash = <span class="keyword">new</span> Link[<span class="number">100</span>];</span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">Link</span> </span>&#123;</span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">int</span> value;</span><br><span class="line">        <span class="keyword">private</span> Link next;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>9、哈希表的时间复杂度</strong></p>
+<p>插入：O(1)</p>
+<p>查询：O(1)</p>
+<p><strong>10、哈希表的优缺点</strong></p>
+<p>优点：集成了数组、链表的全部优点。查询速度快、插入速度快。</p>
+<blockquote>
+<p>这儿的查询速度快是真的查询时间。数组中的查询可以通过二分加快速度，哈希表中的查询，只要计算出哈希值后就能知道下标。</p>
+</blockquote>
+<p>缺点：</p>
+<p>​    数据量很庞大时，失去了查询速度很快的优势。数组大小是固定下来的，假如1000。一旦插入10000数据，平均每个下标下对应深度为2的链表。一旦插入更多的数据，链表深度也越大。get值时需要从头遍历链表，失去了时间复杂度为O(1)的优势。扩展也不容易，需要重新移动数据。</p>
+<p><strong>11、二叉树的构建过程</strong></p>
+<p>依次向子节点添加数据，使新加入的数据是比他大的子节点，比他小的父节点。</p>
+<p>其他略</p>
+<p><strong>12、二叉树的优缺点</strong></p>
+<p>优点：查询使用了二分查找的原理，时间复杂度O(log~2~n)。插入也是先找到插入位置，时间复杂度为O(log~2~n)。扩展非常方便，可以无限扩展。</p>
+<p>缺点：非平衡二叉树效率比较低。比如数据一开始就是有序的，插入后将是一条直线，查询时还是O(n)的时间复杂度</p>
+<p><strong>13、堆的结构、最大堆最小堆</strong></p>
+<p>堆是由树来实现的。</p>
+<p><strong>14、有两个有序的数组，如何快速合成一个有序数组？</strong></p>
+<p>笨方法：合并后再排序</p>
+<p>最佳：用归并思路</p>
+<p><strong>15、给两个字符串，如何快速找出它们公共的字符？</strong></p>
+<p>a = “abcdefg”</p>
+<p>b = “bomgnfce”</p>
+<p>笨方法：双重for循环</p>
+<p>最佳：空间换时间。a的字符作为key放在map中。遍历b，从map中查询，查得到的即为公共的。</p>
+<p><strong>16、给一个棵树，求该树的最大深度</strong></p>
+<p>递归思路：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Node</span> </span>&#123;</span><br><span class="line">    Node left;</span><br><span class="line">    Node right;</span><br><span class="line">    <span class="keyword">int</span> value;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">fun</span><span class="params">()</span></span>&#123;</span><br><span class="line">    Node node1 = <span class="keyword">new</span> Node();</span><br><span class="line">    Node node2 = <span class="keyword">new</span> Node();</span><br><span class="line">    Node node3 = <span class="keyword">new</span> Node();</span><br><span class="line">    Node node4 = <span class="keyword">new</span> Node();</span><br><span class="line">    Node node5 = <span class="keyword">new</span> Node();</span><br><span class="line"></span><br><span class="line">    node1.left = node2;</span><br><span class="line">    node1.right = node3;</span><br><span class="line">    node3.left = node4;</span><br><span class="line">    node4.right = node5;</span><br><span class="line">    <span class="comment">//期望高度为：4</span></span><br><span class="line">    System.out.println(maxHeight(node1));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">maxHeight</span><span class="params">(Node node)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (node == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">int</span> L = <span class="number">1</span> + maxHeight(node.left);</span><br><span class="line">    <span class="keyword">int</span> R = <span class="number">1</span> + maxHeight(node.right);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> L &gt; R ? L : R;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>17、字符串的所有排列组合</strong></p>
+<p>递归思路：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">fun</span><span class="params">()</span></span>&#123;</span><br><span class="line">    comb(<span class="string">"abc"</span>, <span class="string">""</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">comb</span><span class="params">(String str, String finishStr)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (str.length() == <span class="number">0</span>) &#123;</span><br><span class="line">        System.out.println(finishStr);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i&lt; str.length(); i++) &#123;</span><br><span class="line">        String newFinishStr = finishStr + str.substring(i, i+<span class="number">1</span>);</span><br><span class="line">        String newStr = str.substring(<span class="number">0</span>, i) + str.substring(i+<span class="number">1</span>);</span><br><span class="line">        comb(newStr, newFinishStr);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>18、查找树的概念及应用场景</strong></p>
+<p>应用场景：应用于“联想搜索”。例如输入前缀：abc，联想出单词：abcde、abcdf、abcmn……</p>
+<p><img src="/2019/11/13/面试总结-数据结构-算法/clipboard-1573635153319.png" alt="img"></p>
+<p><strong>19、倒排索引的概念及应用场景</strong></p>
+<p>应用场景：搜索引擎：如es、solr、lucene</p>
+<p>概念：将正向索引颠倒过来。</p>
+<p>例如，数据库结构为：</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>text</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>this is my word</td>
+</tr>
+<tr>
+<td>2</td>
+<td>hello my word</td>
+</tr>
+<tr>
+<td>3</td>
+<td>hello java</td>
+</tr>
+</tbody>
+</table>
+<p>根据单词做倒排序索引，得结果：</p>
+<table>
+<thead>
+<tr>
+<th>word</th>
+<th>ids</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>this</td>
+<td>1</td>
+</tr>
+<tr>
+<td>is</td>
+<td>1</td>
+</tr>
+<tr>
+<td>my</td>
+<td>1,2</td>
+</tr>
+<tr>
+<td>word</td>
+<td>1,2</td>
+</tr>
+<tr>
+<td>hello</td>
+<td>2,3</td>
+</tr>
+<tr>
+<td>java</td>
+<td>3</td>
+</tr>
+</tbody>
+</table>
+<p>如果要查找：hello java</p>
+<p>先检索hello，得到id为2 3</p>
+<p>再检索java，得到id为3</p>
+<p>取交集，得到最终的id为3</p>
+<p><strong>20、给一个超大文本文件，里面全是数字，从中找出最大的前10个</strong></p>
+<p>构建最小堆：最小堆是指顶点最小。依次读取文本值，用读到的数字和树的顶点做比较。</p>
+<p><strong>21、bit-map概念及应用场景</strong></p>
+<p>应用场景：</p>
+<ul>
+<li>快速去重</li>
+<li>快速排序</li>
+<li>快速查询</li>
+</ul>
+<p>bit-map的思路是将数值转换为bit。bit是很小的，可以放下超大数据。</p>
+<p>例如快速排序：</p>
+<p>假设我们要对0-7内的5个元素(4,7,2,5,3)排序（这里假设这些元素没有重复）,我们就可以采用Bit-map的方法来达到排序的目的。要表示8个数，我们就只需要8个Bit（1Bytes），首先我们开辟1Byte的空间，将这些空间的所有Bit位都置为0，</p>
+<p><img src="/2019/11/13/面试总结-数据结构-算法/clipboard-1573635859440.png" alt="img"></p>
+<p>数字对应位设置为1:</p>
+<p><img src="/2019/11/13/面试总结-数据结构-算法/../../../个人/clipboard-1573635859440.png" alt="img"></p>
+<p>然后遍历一遍Bit区域，将该位是1的位的编号输出（2，3，4，5，7），这样就达到了排序的目的，时间复杂度O(n)。</p>
+<p>优点：</p>
+<ul>
+<li>运算效率高，不需要进行比较和移位；</li>
+<li>占用内存少，比如有10000000个数字；只需占用内存为N/8=1250000Byte=1.25M。 </li>
+</ul>
+<p>缺点：所有的数据不能重复。即不可对重复的数据进行排序和查找。</p>
+
+  </article>
+  <aside class="table-content" id="site-toc">
+  <div class="table-content-title">
+    <i class="fa fa-arrow-right fa-lg" id="site-toc-hide-btn"></i>
+    <span>目录</span>
+  </div>
+  <div class="table-content-main">
+    <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#数据结构-算法"><span class="toc-text">数据结构 + 算法</span></a></li></ol>
+  </div>
+</aside>
+  
+    <aside class="passage-copyright">
+      <div>本文作者: 李忠友</div>
+      
+        <div>
+          原文链接: 
+          <a href target="_blank">https://wdzaslzy.github.io/2019/11/13/面试总结-数据结构-算法/</a>
+        </div>
+      
+      <div>
+        版权声明: 本博客所有文章除特别声明外, 禁止转载, 转载请注明出处!
+      </div>
+    </aside>
+  
+  
+    <div class="passage-tags">
+     
+      <a href="/tags/data-structure/"><i class="fa fa-tags"></i>data_structure</a>
+    
+    </div>
+  
+</div>
+
+    </main>
+    
+      
+<div class="site-comment-contanier" data-plateform="leancloud">
+  
+    <p id="site-comment-info">
+      <i class="fa fa-spinner fa-spin"></i> 评论加载中
+    </p>
+    <div id="site-comment"></div>
+  
+</div>
+    
+    <div class="site-footer-wrapper">
+</div>
+    <div id="site-layer" style="display:none;">
+  <div class="site-layer-content">
+    <div class="site-layer-header">
+      <span class="site-layer-header-title" id="site-layer-title"></span>
+      <i class="fa fa-close" id="site-layer-close"></i>
+    </div>
+    <div class="site-layer-body" id="site-layer-container">
+      <div class="site-layer-input" id="site-layer-search" style="display: none;">
+        <input type="text">
+        <i class="fa fa-search"></i>
+      </div>
+      <div class="site-layer-reward" id="site-layer-reward" style="display: none;">
+        
+          <div>
+            <img src="/images/wechat.png" alt="WeChat">
+            
+              <p>WeChat</p>
+            
+          </div>
+        
+          <div>
+            <img src="/images/alipay.png" alt="AliPay">
+            
+              <p>AliPay</p>
+            
+          </div>
+        
+      </div>
+      <div id="site-layer-welcome" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+    
+
+<div class="bottom-bar">
+  <div class="bottom-bar-left">
+    <a href="javascript:void(0);" data-enable="false">
+      <i class="fa fa-arrow-left"></i>
+    </a>
+    <a href="/2019/11/04/Flink学习-六、FlinkRuntime核心机制刨析/" data-enable="true">
+      <i class="fa fa-arrow-right"></i>
+    </a>
+  </div>
+  <div class="bottom-bar-right">
+    <a href="javascript:void(0);" data-enable="true" id="site-toc-show-btn">
+      <i class="fa fa-bars"></i>
+    </a>
+    
+      <a href="#site-comment" data-enable="true">
+        <i class="fa fa-commenting"></i>
+      </a>
+    
+    <a href="javascript:void(0);" id="site-toggle-share-btn">
+      <i class="fa fa-share-alt"></i>
+    </a>
+    <a href="javascript:void(0);" id="site-reward">
+      <i class="fa fa-thumbs-up"></i>
+    </a>
+    <a href="javascript:void(0);" id="back-top-btn">
+      <i class="fa fa-chevron-up"></i>
+    </a>
+  </div>
+</div>
+    <div id="share-btn">
+  
+    <a id="share-btn-twitter" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-twitter"></i>
+    </a>
+  
+  
+    <a id="share-btn-facebook" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-facebook"></i>
+    </a>
+  
+  
+    <a id="share-btn-weibo" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-weibo"></i>
+    </a>
+  
+  
+    <a id="share-btn-qq" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-qq"></i>
+    </a>
+  
+  
+    <a id="share-btn-wechat" href="javascript:void(0);" target="_blank">
+      <i class="fa fa-wechat"></i>
+    </a>
+  
+</div>
+    
+
+
+
+
+
+    
+  </body>
+</html>
