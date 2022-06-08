@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="在HBase中，我们存储的数据是时序数据。时序数据的特点是，只关心实时数据，历史数据一般不关心。因此，我们在设计RowKey时，充分根据时间特性来进行设置：bucket_time_xxx。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HBase调优之七：RegionBalance机制及实践">
+<meta property="og:url" content="http://example.com/2022/06/06/HBase%E8%B0%83%E4%BC%98%E4%B9%8B%E4%B8%83%EF%BC%9ARegionBalance%E6%9C%BA%E5%88%B6/index.html">
+<meta property="og:site_name" content="大数据架构之道">
+<meta property="og:description" content="在HBase中，我们存储的数据是时序数据。时序数据的特点是，只关心实时数据，历史数据一般不关心。因此，我们在设计RowKey时，充分根据时间特性来进行设置：bucket_time_xxx。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/images/Dingtalk_20220530150011.jpg">
+<meta property="og:image" content="http://example.com/images/Dingtalk_20220530150107.jpg">
+<meta property="og:image" content="http://example.com/images/hbase/balance%E7%B1%BB%E5%9B%BE.jpg">
+<meta property="og:image" content="http://example.com/images/hbase/a3d7392a4e96ced252a0f425ed1ebb4a40e519ad.png">
+<meta property="og:image" content="http://example.com/images/hbase/07d2b94044f25913dd473ed0abdc49f9fda67da0.png">
+<meta property="og:image" content="http://example.com/images/hbase/lQLPJxZc3z7s6bHM2c0CGLBFpW5qBdzkrQKZOlXxANYA_536_217.png">
+<meta property="og:image" content="http://example.com/images/hbase/1654081128(1).jpg">
+<meta property="og:image" content="http://example.com/images/hbase/a30b0ece6a41efbfece74466cc2e48cefdfc9bf3.png">
+<meta property="og:image" content="http://example.com/images/hbase/CandidateGenerator.png">
+<meta property="og:image" content="http://example.com/images/hbase/20220606145148.jpg">
+<meta property="og:image" content="http://example.com/images/hbase/20220606145303.jpg">
+<meta property="og:image" content="http://example.com/images/hbase/20220606145715.jpg">
+<meta property="og:image" content="http://example.com/images/hbase/20220606165150.jpg">
+<meta property="og:image" content="http://example.com/images/hbase/1654505979702.jpg">
+<meta property="og:image" content="http://example.com/images/hbase/20220607105453.jpg">
+<meta property="og:image" content="http://example.com/images/hbase/20220607105608.jpg">
+<meta property="og:image" content="http://example.com/images/hbase/20220607110901.jpg">
+<meta property="og:image" content="http://example.com/images/hbase/20220607121036.jpg">
+<meta property="og:image" content="http://example.com/images/hbase/20220607121226.jpg">
+<meta property="article:published_time" content="2022-06-06T08:27:35.107Z">
+<meta property="article:modified_time" content="2022-06-06T08:27:35.107Z">
+<meta property="article:author" content="乡间小鹿">
+<meta property="article:tag" content="hbase">
+<meta property="article:tag" content="性能调优">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/images/Dingtalk_20220530150011.jpg">
+
+<link rel="canonical" href="http://example.com/2022/06/06/HBase%E8%B0%83%E4%BC%98%E4%B9%8B%E4%B8%83%EF%BC%9ARegionBalance%E6%9C%BA%E5%88%B6/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>HBase调优之七：RegionBalance机制及实践 | 大数据架构之道</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">大数据架构之道</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/06/06/HBase%E8%B0%83%E4%BC%98%E4%B9%8B%E4%B8%83%EF%BC%9ARegionBalance%E6%9C%BA%E5%88%B6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/head.jpg">
+      <meta itemprop="name" content="乡间小鹿">
+      <meta itemprop="description" content="每一个不曾起舞的日子都是对生命的辜负">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="大数据架构之道">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          HBase调优之七：RegionBalance机制及实践
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-06-06 16:27:35" itemprop="dateCreated datePublished" datetime="2022-06-06T16:27:35+08:00">2022-06-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/HBase%E8%B0%83%E4%BC%98/" itemprop="url" rel="index"><span itemprop="name">HBase调优</span></a>
+                </span>
+            </span>
+
+          
+            <div class="post-description">在HBase中，我们存储的数据是时序数据。时序数据的特点是，只关心实时数据，历史数据一般不关心。因此，我们在设计RowKey时，充分根据时间特性来进行设置：bucket_time_xxx。</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>在HBase中，我们存储的数据是时序数据。时序数据的特点是，只关心实时数据，历史数据一般不关心。</p>
+<p>因此，我们在设计RowKey时，充分根据时间特性来进行设置：bucket_time_xxx</p>
+<p>其中，bucket个数是固定的，取值范围：[1, 512]。主要用来将数据均匀的分散在不同的Region。</p>
+<p>但是随着时间的推移，Region发生split后，旧时间段的Region，不会再有写入。即：它只提供查询，不提供实时写入。而我们的业务场景是写多读少场景。</p>
+<p>这就导致，我们的RegionServer的Region虽然分配很均匀，但是写入差距却很大。</p>
+<p><img src="/../images/Dingtalk_20220530150011.jpg"></p>
+<p><img src="/../images/Dingtalk_20220530150107.jpg"></p>
+<h2 id="Balancer源码分析"><a href="#Balancer源码分析" class="headerlink" title="Balancer源码分析"></a>Balancer源码分析</h2><h3 id="balancer触发时机"><a href="#balancer触发时机" class="headerlink" title="balancer触发时机"></a>balancer触发时机</h3><p><strong>一、手动触发</strong></p>
+<p>在hbase shell中执行</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">hbase&gt; </span><span class="language-bash">balancer</span></span><br></pre></td></tr></table></figure>
+
+<p>hbase shell中提交的所有命令，都是执行在HMaster的main函数中。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String [] args)</span> &#123;</span><br><span class="line">    LOG.info(<span class="string">&quot;STARTING service &quot;</span> + HMaster.class.getSimpleName());</span><br><span class="line">    VersionInfo.logVersion();</span><br><span class="line">    <span class="keyword">new</span> <span class="title class_">HMasterCommandLine</span>(HMaster.class).doMain(args);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>二、定时触发</strong></p>
+<p>hbase提供了配置项：hbase.balancer.period</p>
+<p>每隔5分钟，会自动检查一次是否需要进行rebalance。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">BalancerChore</span> <span class="keyword">extends</span> <span class="title class_">ScheduledChore</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">Logger</span> <span class="variable">LOG</span> <span class="operator">=</span> LoggerFactory.getLogger(BalancerChore.class);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> HMaster master;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">BalancerChore</span><span class="params">(HMaster master)</span> &#123;</span><br><span class="line">        <span class="comment">// 每隔5分钟触发一次</span></span><br><span class="line">        <span class="built_in">super</span>(master.getServerName() + <span class="string">&quot;-BalancerChore&quot;</span>, master, master.getConfiguration().getInt(</span><br><span class="line">            HConstants.HBASE_BALANCER_PERIOD, HConstants.DEFAULT_HBASE_BALANCER_PERIOD));</span><br><span class="line">        <span class="built_in">this</span>.master = master;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">chore</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            master.balance();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            LOG.error(<span class="string">&quot;Failed to balance.&quot;</span>, e);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h3 id="执行过程"><a href="#执行过程" class="headerlink" title="执行过程"></a>执行过程</h3><p>触发balance后，实际执行入口是HMaster的balance方法。有无参和是否强制执行。默认不强制执行。强制执行是说，当前如果存在RIT(正在发生split)时，也能继续执行。</p>
+<h4 id="初始化"><a href="#初始化" class="headerlink" title="初始化"></a><strong>初始化</strong></h4><p>HMaster启动时，会调用initializeZKBasedSystemTrackers()方法初始化balancer。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">initializeZKBasedSystemTrackers</span><span class="params">()</span></span><br><span class="line">    <span class="keyword">throws</span> IOException, InterruptedException, KeeperException, ReplicationException &#123;</span><br><span class="line"> 	<span class="comment">// balancer相关代码，省略了其它逻辑</span></span><br><span class="line">    <span class="comment">//初始化balancer</span></span><br><span class="line">    <span class="built_in">this</span>.balancer = LoadBalancerFactory.getLoadBalancer(conf);</span><br><span class="line">    <span class="comment">//Factory中，使用的default是StochasticLoadBalancer</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里面的balancer是：LoadBalancer 类型。目前，HBase提供了4种balance方式。依赖关系如下：</p>
+<p><img src="/../images/hbase/balance%E7%B1%BB%E5%9B%BE.jpg"></p>
+<ul>
+<li><p>RSGroupBasedLoadBalancer</p>
+<blockquote>
+<p>Region分组时可以使用它</p>
+</blockquote>
+</li>
+<li><p>StochasticLoadBalancer</p>
+<blockquote>
+<p>默认balance策略，HBase中最好用的</p>
+</blockquote>
+</li>
+<li><p>FavoredStochasticBalancer</p>
+<blockquote>
+</blockquote>
+</li>
+<li><p>SimpleLoadBalancer</p>
+<blockquote>
+<p>最简单的平衡策略，单纯的通过RegionCount来平衡</p>
+</blockquote>
+</li>
+<li><p>FavoredNodeLoadBalancer</p>
+<blockquote>
+<p>为每个Region分配首选RS。</p>
+</blockquote>
+</li>
+</ul>
+<p>HMaster启动后，会调用finishActiveMasterInitialization()方法做一些初始化动作。其中，balance的初始化也在其中。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">finishActiveMasterInitialization</span><span class="params">(MonitoredTask status)</span></span><br><span class="line">      <span class="keyword">throws</span> IOException, InterruptedException, KeeperException, ReplicationException &#123;</span><br><span class="line"> 	<span class="comment">// balancer相关代码，省略了其它逻辑</span></span><br><span class="line">    <span class="comment">//初始化balance</span></span><br><span class="line">    <span class="built_in">this</span>.balancer.setMasterServices(<span class="built_in">this</span>);</span><br><span class="line">    <span class="built_in">this</span>.balancer.setClusterMetrics(getClusterMetricsWithoutCoprocessor());</span><br><span class="line">    <span class="built_in">this</span>.balancer.initialize();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="检查是否需要执行balance"><a href="#检查是否需要执行balance" class="headerlink" title="检查是否需要执行balance"></a><strong>检查是否需要执行balance</strong></h4><p>当触发balancer后，会检查是否需要进行。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">balance</span><span class="params">(<span class="type">boolean</span> force)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">maxRegionsInTransition</span> <span class="operator">=</span> getMaxRegionsInTransition();</span><br><span class="line">    <span class="keyword">synchronized</span> (<span class="built_in">this</span>.balancer) &#123;</span><br><span class="line">        <span class="comment">// 关注点1：未开启balancer，不进行balancer</span></span><br><span class="line">        <span class="keyword">if</span> (!<span class="built_in">this</span>.loadBalancerTracker.isBalancerOn()) <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 关注点2：存在meta表的RIT 或 其它表的RIT但未force，不进行balancer</span></span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">this</span>.assignmentManager.hasRegionsInTransition()) &#123;	<span class="comment">//存在RIT时</span></span><br><span class="line">            List&lt;RegionStateNode&gt; regionsInTransition = assignmentManager.getRegionsInTransition();</span><br><span class="line">            </span><br><span class="line">            <span class="comment">// 如果存在meta表进行RIT，则即使是force，也返回失败</span></span><br><span class="line">            <span class="type">boolean</span> <span class="variable">metaInTransition</span> <span class="operator">=</span> assignmentManager.isMetaRegionInTransition();</span><br><span class="line">            <span class="type">String</span> <span class="variable">prefix</span> <span class="operator">=</span> force &amp;&amp; !metaInTransition ? <span class="string">&quot;R&quot;</span> : <span class="string">&quot;Not r&quot;</span>;</span><br><span class="line">            LOG.info(prefix + <span class="string">&quot;unning balancer because &quot;</span> + regionsInTransition.size() +</span><br><span class="line">                     <span class="string">&quot; region(s) in transition: &quot;</span> + toPrint + (truncated? <span class="string">&quot;(truncated list)&quot;</span>: <span class="string">&quot;&quot;</span>));</span><br><span class="line">            <span class="keyword">if</span> (!force || metaInTransition) <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 关注点3：存在异常的RS，不进行balancer</span></span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">this</span>.serverManager.areDeadServersInProgress()) &#123;</span><br><span class="line">            LOG.info(<span class="string">&quot;Not running balancer because processing dead regionserver(s): &quot;</span> +</span><br><span class="line">                     <span class="built_in">this</span>.serverManager.getDeadServers());</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 关注点4：存在Region是Open状态，但分配到该Region的RS不存在（一般是异常情况，造成不一致的代码太复杂，没多做关注。假使出现了这种情况，将该Region disable后，再open，即能分配到合理的RS上。）</span></span><br><span class="line">        Map&lt;ServerName, ServerMetrics&gt; onlineServers = serverManager.getOnlineServers();</span><br><span class="line">        <span class="type">int</span> <span class="variable">regionNotOnOnlineServer</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">for</span> (RegionState regionState : assignmentManager.getRegionStates().getRegionStates()) &#123;</span><br><span class="line">            <span class="keyword">if</span> (regionState.isOpened() &amp;&amp; !onlineServers</span><br><span class="line">                .containsKey(regionState.getServerName())) &#123;</span><br><span class="line">                LOG.warn(<span class="string">&quot;&#123;&#125; &#x27;s server is not in the online server list.&quot;</span>, regionState);</span><br><span class="line">                regionNotOnOnlineServer++;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (regionNotOnOnlineServer &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            LOG.info(<span class="string">&quot;Not running balancer because &#123;&#125; regions found not on an online server&quot;</span>,</span><br><span class="line">                     regionNotOnOnlineServer);</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 关注点5：生成Balancer计划，支持按表去进行balance</span></span><br><span class="line">        <span class="type">boolean</span> <span class="variable">isByTable</span> <span class="operator">=</span> getConfiguration().getBoolean(<span class="string">&quot;hbase.master.loadbalance.bytable&quot;</span>, <span class="literal">false</span>);</span><br><span class="line">        Map&lt;TableName, Map&lt;ServerName, List&lt;RegionInfo&gt;&gt;&gt; assignments =</span><br><span class="line">            <span class="built_in">this</span>.assignmentManager.getRegionStates().getAssignmentsForBalancer(isByTable);</span><br><span class="line">        <span class="keyword">for</span> (Map&lt;ServerName, List&lt;RegionInfo&gt;&gt; serverMap : assignments.values()) &#123;</span><br><span class="line">            serverMap.keySet().removeAll(<span class="built_in">this</span>.serverManager.getDrainingServersList());</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//Give the balancer the current cluster state.</span></span><br><span class="line">        <span class="built_in">this</span>.balancer.setClusterMetrics(getClusterMetricsWithoutCoprocessor());</span><br><span class="line">        <span class="built_in">this</span>.balancer.setClusterLoad(assignments);</span><br><span class="line"></span><br><span class="line">        List&lt;RegionPlan&gt; plans = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">        <span class="keyword">for</span> (Entry&lt;TableName, Map&lt;ServerName, List&lt;RegionInfo&gt;&gt;&gt; e : assignments.entrySet()) &#123;</span><br><span class="line">           	<span class="comment">// 关注点6：是否需要进行balancer在此处判断，如果需要balance，则生成RegionPlan</span></span><br><span class="line">            List&lt;RegionPlan&gt; partialPlans = <span class="built_in">this</span>.balancer.balanceCluster(e.getKey(), e.getValue());</span><br><span class="line">            <span class="keyword">if</span> (partialPlans != <span class="literal">null</span>) &#123;</span><br><span class="line">                plans.addAll(partialPlans);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 开始进行balance</span></span><br><span class="line">        <span class="type">long</span> <span class="variable">balanceStartTime</span> <span class="operator">=</span> System.currentTimeMillis();</span><br><span class="line">        <span class="type">long</span> <span class="variable">cutoffTime</span> <span class="operator">=</span> balanceStartTime + <span class="built_in">this</span>.maxBlancingTime;</span><br><span class="line">        <span class="type">int</span> <span class="variable">rpCount</span> <span class="operator">=</span> <span class="number">0</span>;  <span class="comment">// number of RegionPlans balanced so far</span></span><br><span class="line">        <span class="keyword">if</span> (plans != <span class="literal">null</span> &amp;&amp; !plans.isEmpty()) &#123;</span><br><span class="line">            <span class="type">int</span> <span class="variable">balanceInterval</span> <span class="operator">=</span> <span class="built_in">this</span>.maxBlancingTime / plans.size();</span><br><span class="line">            LOG.info(<span class="string">&quot;Balancer plans size is &quot;</span> + plans.size() + <span class="string">&quot;, the balance interval is &quot;</span></span><br><span class="line">                     + balanceInterval + <span class="string">&quot; ms, and the max number regions in transition is &quot;</span></span><br><span class="line">                     + maxRegionsInTransition);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">for</span> (RegionPlan plan: plans) &#123;</span><br><span class="line">                LOG.info(<span class="string">&quot;balance &quot;</span> + plan);</span><br><span class="line">                <span class="comment">//<span class="doctag">TODO:</span> bulk assign</span></span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    <span class="comment">//关注点7：实际去进行balance，把当前RS上的Region移动到别的RS上。</span></span><br><span class="line">                    <span class="built_in">this</span>.assignmentManager.moveAsync(plan);</span><br><span class="line">                &#125; <span class="keyword">catch</span> (HBaseIOException hioe) &#123;</span><br><span class="line">                    <span class="comment">//should ignore failed plans here, avoiding the whole balance plans be aborted</span></span><br><span class="line">                    <span class="comment">//later calls of balance() can fetch up the failed and skipped plans</span></span><br><span class="line">                    LOG.warn(<span class="string">&quot;Failed balance plan: &#123;&#125;, just skip it&quot;</span>, plan, hioe);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="comment">//rpCount records balance plans processed, does not care if a plan succeeds</span></span><br><span class="line">                rpCount++;</span><br><span class="line"></span><br><span class="line">                balanceThrottling(balanceStartTime + rpCount * balanceInterval, maxRegionsInTransition,</span><br><span class="line">                                  cutoffTime);</span><br><span class="line"></span><br><span class="line">                <span class="comment">// if performing next balance exceeds cutoff time, exit the loop</span></span><br><span class="line">                <span class="keyword">if</span> (rpCount &lt; plans.size() &amp;&amp; System.currentTimeMillis() &gt; cutoffTime) &#123;</span><br><span class="line">                    <span class="comment">// <span class="doctag">TODO:</span> After balance, there should not be a cutoff time (keeping it as</span></span><br><span class="line">                    <span class="comment">// a security net for now)</span></span><br><span class="line">                    LOG.debug(<span class="string">&quot;No more balancing till next balance run; maxBalanceTime=&quot;</span></span><br><span class="line">                              + <span class="built_in">this</span>.maxBlancingTime);</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// If LoadBalancer did not generate any plans, it means the cluster is already balanced.</span></span><br><span class="line">    <span class="comment">// Return true indicating a success.</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>关注点6中的代码实现细节：默认使用的是：StochasticLoadBalancer，看它里面生成balancer计划逻辑。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> List&lt;RegionPlan&gt; <span class="title function_">balanceCluster</span><span class="params">(Map&lt;ServerName,</span></span><br><span class="line"><span class="params">                                                    List&lt;RegionInfo&gt;&gt; clusterState)</span> &#123;</span><br><span class="line">    <span class="comment">// 关注点1：先对master上的 region 进行平衡。具体平衡逻辑参考下面。</span></span><br><span class="line">    List&lt;RegionPlan&gt; plans = balanceMasterRegions(clusterState);</span><br><span class="line">    <span class="keyword">if</span> (plans != <span class="literal">null</span> || clusterState == <span class="literal">null</span> || clusterState.size() &lt;= <span class="number">1</span>) &#123;</span><br><span class="line">        <span class="comment">// 如果master上需要进行balance，则这次balance只在master节点上进行，其它RegionServer上不进行balance。</span></span><br><span class="line">        <span class="comment">// 我们当前默认是不需要在master节点上存放region，因此，这步会跳过。</span></span><br><span class="line">        <span class="keyword">return</span> plans;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (masterServerName != <span class="literal">null</span> &amp;&amp; clusterState.containsKey(masterServerName)) &#123;</span><br><span class="line">        <span class="keyword">if</span> (clusterState.size() &lt;= <span class="number">2</span>) &#123;</span><br><span class="line">            <span class="comment">// 除了master之外，如果只剩下一个RS，也不进行balance。</span></span><br><span class="line">            <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        clusterState = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;(clusterState);</span><br><span class="line">        clusterState.remove(masterServerName);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// On clusters with lots of HFileLinks or lots of reference files,</span></span><br><span class="line">    <span class="comment">// instantiating the storefile infos can be quite expensive.</span></span><br><span class="line">    <span class="comment">// Allow turning this feature off if the locality cost is not going to</span></span><br><span class="line">    <span class="comment">// be used in any computations.</span></span><br><span class="line">    <span class="type">RegionLocationFinder</span> <span class="variable">finder</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">    <span class="keyword">if</span> ((<span class="built_in">this</span>.localityCost != <span class="literal">null</span> &amp;&amp; <span class="built_in">this</span>.localityCost.getMultiplier() &gt; <span class="number">0</span>)</span><br><span class="line">        || (<span class="built_in">this</span>.rackLocalityCost != <span class="literal">null</span> &amp;&amp; <span class="built_in">this</span>.rackLocalityCost.getMultiplier() &gt; <span class="number">0</span>)) &#123;</span><br><span class="line">        finder = <span class="built_in">this</span>.regionFinder;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//The clusterState that is given to this method contains the state</span></span><br><span class="line">    <span class="comment">//of all the regions in the table(s) (that&#x27;s true today)</span></span><br><span class="line">    <span class="comment">// Keep track of servers to iterate through them.</span></span><br><span class="line">    <span class="type">Cluster</span> <span class="variable">cluster</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Cluster</span>(clusterState, loads, finder, rackManager);</span><br><span class="line"></span><br><span class="line">    <span class="type">long</span> <span class="variable">startTime</span> <span class="operator">=</span> EnvironmentEdgeManager.currentTime();</span><br><span class="line"></span><br><span class="line">    initCosts(cluster);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 关注点2：判断是否需要balance。核心代码如下。</span></span><br><span class="line">    <span class="keyword">if</span> (!needsBalance(cluster)) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="type">double</span> <span class="variable">currentCost</span> <span class="operator">=</span> computeCost(cluster, Double.MAX_VALUE);</span><br><span class="line">    curOverallCost = currentCost;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="built_in">this</span>.curFunctionCosts.length; i++) &#123;</span><br><span class="line">        curFunctionCosts[i] = tempFunctionCosts[i];</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="type">double</span> <span class="variable">initCost</span> <span class="operator">=</span> currentCost;</span><br><span class="line">    <span class="type">double</span> <span class="variable">newCost</span> <span class="operator">=</span> currentCost;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 计划需要多少步完成本次balance</span></span><br><span class="line">    <span class="type">long</span> computedMaxSteps;</span><br><span class="line">    <span class="keyword">if</span> (runMaxSteps) &#123;</span><br><span class="line">        computedMaxSteps = Math.max(<span class="built_in">this</span>.maxSteps,</span><br><span class="line">                                    ((<span class="type">long</span>)cluster.numRegions * (<span class="type">long</span>)<span class="built_in">this</span>.stepsPerRegion * (<span class="type">long</span>)cluster.numServers));</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="type">long</span> <span class="variable">calculatedMaxSteps</span> <span class="operator">=</span> (<span class="type">long</span>)cluster.numRegions * (<span class="type">long</span>)<span class="built_in">this</span>.stepsPerRegion *</span><br><span class="line">            (<span class="type">long</span>)cluster.numServers;</span><br><span class="line">        computedMaxSteps = Math.min(<span class="built_in">this</span>.maxSteps, calculatedMaxSteps);</span><br><span class="line">        <span class="keyword">if</span> (calculatedMaxSteps &gt; maxSteps) &#123;</span><br><span class="line">            LOG.warn(<span class="string">&quot;calculatedMaxSteps:&#123;&#125; for loadbalancer&#x27;s stochastic walk is larger than &quot;</span></span><br><span class="line">                     + <span class="string">&quot;maxSteps:&#123;&#125;. Hence load balancing may not work well. Setting parameter &quot;</span></span><br><span class="line">                     + <span class="string">&quot;\&quot;hbase.master.balancer.stochastic.runMaxSteps\&quot; to true can overcome this issue.&quot;</span></span><br><span class="line">                     + <span class="string">&quot;(This config change does not require service restart)&quot;</span>, calculatedMaxSteps,</span><br><span class="line">                     maxRunningTime);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    LOG.info(<span class="string">&quot;start StochasticLoadBalancer.balancer, initCost=&quot;</span> + currentCost + <span class="string">&quot;, functionCost=&quot;</span></span><br><span class="line">             + functionCost() + <span class="string">&quot; computedMaxSteps: &quot;</span> + computedMaxSteps);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Perform a stochastic walk to see if we can get a good fit.</span></span><br><span class="line">    <span class="type">long</span> step;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 关注点3：生成具体的执行动作，并进行模拟执行</span></span><br><span class="line">    <span class="keyword">for</span> (step = <span class="number">0</span>; step &lt; computedMaxSteps; step++) &#123;</span><br><span class="line">        <span class="comment">// 生成执行动作，核心代码在下面</span></span><br><span class="line">        Cluster.<span class="type">Action</span> <span class="variable">action</span> <span class="operator">=</span> nextAction(cluster);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (action.type == Type.NULL) &#123;</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 模拟执行</span></span><br><span class="line">        cluster.doAction(action);</span><br><span class="line">        <span class="comment">// 模拟执行后更新收益情况</span></span><br><span class="line">        updateCostsWithAction(cluster, action);</span><br><span class="line"></span><br><span class="line">        newCost = computeCost(cluster, currentCost);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Should this be kept?</span></span><br><span class="line">        <span class="comment">// 模拟执行后是否有收益，如果有，则往下执行，否则回滚收益：即本次action不进行</span></span><br><span class="line">        <span class="keyword">if</span> (newCost &lt; currentCost) &#123;</span><br><span class="line">            currentCost = newCost;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// save for JMX</span></span><br><span class="line">            curOverallCost = currentCost;</span><br><span class="line">            <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="built_in">this</span>.curFunctionCosts.length; i++) &#123;</span><br><span class="line">                curFunctionCosts[i] = tempFunctionCosts[i];</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// Put things back the way they were before.</span></span><br><span class="line">            <span class="comment">// <span class="doctag">TODO:</span> undo by remembering old values</span></span><br><span class="line">            <span class="type">Action</span> <span class="variable">undoAction</span> <span class="operator">=</span> action.undoAction();</span><br><span class="line">            cluster.doAction(undoAction);</span><br><span class="line">            updateCostsWithAction(cluster, undoAction);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (EnvironmentEdgeManager.currentTime() - startTime &gt;</span><br><span class="line">            maxRunningTime) &#123;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="type">long</span> <span class="variable">endTime</span> <span class="operator">=</span> EnvironmentEdgeManager.currentTime();</span><br><span class="line"></span><br><span class="line">    metricsBalancer.balanceCluster(endTime - startTime);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// update costs metrics</span></span><br><span class="line">    updateStochasticCosts(tableName, curOverallCost, curFunctionCosts);</span><br><span class="line">    <span class="keyword">if</span> (initCost &gt; currentCost) &#123;</span><br><span class="line">        plans = createRegionPlans(cluster);</span><br><span class="line">        LOG.info(<span class="string">&quot;Finished computing new load balance plan. Computation took &#123;&#125;&quot;</span> +</span><br><span class="line">                 <span class="string">&quot; to try &#123;&#125; different iterations.  Found a solution that moves &quot;</span> +</span><br><span class="line">                 <span class="string">&quot;&#123;&#125; regions; Going from a computed cost of &#123;&#125;&quot;</span> +</span><br><span class="line">                 <span class="string">&quot; to a new cost of &#123;&#125;&quot;</span>, java.time.Duration.ofMillis(endTime - startTime),</span><br><span class="line">                 step, plans.size(), initCost, currentCost);</span><br><span class="line">        <span class="keyword">return</span> plans;</span><br><span class="line">    &#125;</span><br><span class="line">    LOG.info(<span class="string">&quot;Could not find a better load balance plan.  Tried &#123;&#125; different configurations in &quot;</span> +</span><br><span class="line">             <span class="string">&quot;&#123;&#125;, and did not find anything with a computed cost less than &#123;&#125;&quot;</span>, step,</span><br><span class="line">             java.time.Duration.ofMillis(endTime - startTime), initCost);</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>master节点上的balancer操作</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 关注点1代码实现细节</span></span><br><span class="line"><span class="keyword">protected</span> List&lt;RegionPlan&gt; <span class="title function_">balanceMasterRegions</span><span class="params">(Map&lt;ServerName, List&lt;RegionInfo&gt;&gt; clusterMap)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (masterServerName == <span class="literal">null</span> || clusterMap == <span class="literal">null</span> || clusterMap.size() &lt;= <span class="number">1</span>) <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">    List&lt;RegionPlan&gt; plans = <span class="literal">null</span>;</span><br><span class="line">    List&lt;RegionInfo&gt; regions = clusterMap.get(masterServerName);</span><br><span class="line">    <span class="keyword">if</span> (regions != <span class="literal">null</span>) &#123;</span><br><span class="line">        Iterator&lt;ServerName&gt; keyIt = <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">for</span> (RegionInfo region: regions) &#123;</span><br><span class="line">            <span class="comment">// 核心代码：某个region是否有必要存在master上。</span></span><br><span class="line">            <span class="comment">/**</span></span><br><span class="line"><span class="comment">             * 判断逻辑：检查配置，是否开启系统表的region放在master。如果开启，并且是系统表，则需要放在master。默认关闭。</span></span><br><span class="line"><span class="comment">             * hbase.balancer.tablesOnMaster.systemTablesOnly</span></span><br><span class="line"><span class="comment">             **/</span> </span><br><span class="line">            <span class="keyword">if</span> (shouldBeOnMaster(region)) <span class="keyword">continue</span>;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Find a non-master regionserver to host the region</span></span><br><span class="line">            <span class="keyword">if</span> (keyIt == <span class="literal">null</span> || !keyIt.hasNext()) &#123;</span><br><span class="line">                keyIt = clusterMap.keySet().iterator();</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="type">ServerName</span> <span class="variable">dest</span> <span class="operator">=</span> keyIt.next();</span><br><span class="line">            <span class="keyword">if</span> (masterServerName.equals(dest)) &#123;</span><br><span class="line">                <span class="keyword">if</span> (!keyIt.hasNext()) &#123;</span><br><span class="line">                    keyIt = clusterMap.keySet().iterator();</span><br><span class="line">                &#125;</span><br><span class="line">                dest = keyIt.next();</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Move this region away from the master regionserver</span></span><br><span class="line">            <span class="type">RegionPlan</span> <span class="variable">plan</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">RegionPlan</span>(region, masterServerName, dest);</span><br><span class="line">            <span class="keyword">if</span> (plans == <span class="literal">null</span>) &#123;</span><br><span class="line">                plans = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">            &#125;</span><br><span class="line">            plans.add(plan);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> (Map.Entry&lt;ServerName, List&lt;RegionInfo&gt;&gt; server: clusterMap.entrySet()) &#123;</span><br><span class="line">        <span class="keyword">if</span> (masterServerName.equals(server.getKey())) <span class="keyword">continue</span>;</span><br><span class="line">        <span class="keyword">for</span> (RegionInfo region: server.getValue()) &#123;</span><br><span class="line">            <span class="keyword">if</span> (!shouldBeOnMaster(region)) <span class="keyword">continue</span>;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Move this region to the master regionserver</span></span><br><span class="line">            <span class="type">RegionPlan</span> <span class="variable">plan</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">RegionPlan</span>(region, server.getKey(), masterServerName);</span><br><span class="line">            <span class="keyword">if</span> (plans == <span class="literal">null</span>) &#123;</span><br><span class="line">                plans = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">            &#125;</span><br><span class="line">            plans.add(plan);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> plans;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>needsBalance逻辑</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 1. 初始化Cost</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">init</span><span class="params">()</span>&#123;</span><br><span class="line">    costFunctions = <span class="keyword">new</span> <span class="title class_">CostFunction</span>[]&#123;</span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">RegionCountSkewCostFunction</span>(conf),			<span class="comment">// Region数目维度</span></span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">PrimaryRegionCountSkewCostFunction</span>(conf),	<span class="comment">// </span></span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">MoveCostFunction</span>(conf),						<span class="comment">// 迁移Region维度</span></span><br><span class="line">        localityCost,									<span class="comment">// 文件本地化维度</span></span><br><span class="line">        rackLocalityCost,</span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">TableSkewCostFunction</span>(conf),				<span class="comment">// 表维度</span></span><br><span class="line">        regionReplicaHostCostFunction,					<span class="comment">// 副本</span></span><br><span class="line">        regionReplicaRackCostFunction,					</span><br><span class="line">        regionLoadFunctions[<span class="number">0</span>],							<span class="comment">// 负载维度，读写等</span></span><br><span class="line">        regionLoadFunctions[<span class="number">1</span>],</span><br><span class="line">        regionLoadFunctions[<span class="number">2</span>],</span><br><span class="line">        regionLoadFunctions[<span class="number">3</span>],</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. 是否需要进行balance</span></span><br><span class="line"><span class="keyword">protected</span> <span class="type">boolean</span> <span class="title function_">needsBalance</span><span class="params">(Cluster cluster)</span> &#123;</span><br><span class="line">    <span class="type">ClusterLoadState</span> <span class="variable">cs</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ClusterLoadState</span>(cluster.clusterState);</span><br><span class="line">    <span class="keyword">if</span> (cs.getNumServers() &lt; MIN_SERVER_BALANCE) &#123;</span><br><span class="line">        <span class="comment">// RS个数小于2，我们已经大于2了。</span></span><br><span class="line">        <span class="keyword">if</span> (LOG.isDebugEnabled()) &#123;</span><br><span class="line">            LOG.debug(<span class="string">&quot;Not running balancer because only &quot;</span> + cs.getNumServers()</span><br><span class="line">                      + <span class="string">&quot; active regionserver(s)&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (areSomeRegionReplicasColocated(cluster)) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 核心代码</span></span><br><span class="line">    <span class="type">double</span> <span class="variable">total</span> <span class="operator">=</span> <span class="number">0.0</span>;</span><br><span class="line">    <span class="type">float</span> <span class="variable">sumMultiplier</span> <span class="operator">=</span> <span class="number">0.0f</span>;</span><br><span class="line">    <span class="keyword">for</span> (CostFunction c : costFunctions) &#123;</span><br><span class="line">        <span class="type">float</span> <span class="variable">multiplier</span> <span class="operator">=</span> c.getMultiplier();</span><br><span class="line">        <span class="keyword">if</span> (multiplier &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (!c.isNeeded()) &#123;</span><br><span class="line">            LOG.debug(<span class="string">&quot;&#123;&#125; not needed&quot;</span>, c.getClass().getSimpleName());</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        sumMultiplier += multiplier;</span><br><span class="line">        total += c.cost() * multiplier;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// minCostNeedBalance默认值大小为：0.05，可通过hbase.master.balancer.stochastic.minCostNeedBalance配置。</span></span><br><span class="line">    <span class="comment">// 官网https://issues.apache.org/jira/browse/HBASE-22349</span></span><br><span class="line">    <span class="keyword">if</span> (total &lt;= <span class="number">0</span> || sumMultiplier &lt;= <span class="number">0</span></span><br><span class="line">        || (sumMultiplier &gt; <span class="number">0</span> &amp;&amp; (total / sumMultiplier) &lt; minCostNeedBalance)) &#123;</span><br><span class="line">        <span class="keyword">if</span> (LOG.isTraceEnabled()) &#123;</span><br><span class="line">            <span class="keyword">final</span> <span class="type">String</span> <span class="variable">loadBalanceTarget</span> <span class="operator">=</span></span><br><span class="line">                isByTable ? String.format(<span class="string">&quot;table (%s)&quot;</span>, tableName) : <span class="string">&quot;cluster&quot;</span>;</span><br><span class="line">            LOG.trace(<span class="string">&quot;Skipping load balancing because the &#123;&#125; is balanced. Total cost: &#123;&#125;, &quot;</span></span><br><span class="line">                      + <span class="string">&quot;Sum multiplier: &#123;&#125;, Minimum cost needed for balance: &#123;&#125;&quot;</span>, loadBalanceTarget, total,</span><br><span class="line">                      sumMultiplier, minCostNeedBalance);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>几个重要的CostFunction</strong></p>
+<p><img src="/../images/hbase/a3d7392a4e96ced252a0f425ed1ebb4a40e519ad.png"></p>
+<p>CostFunction是一个判断代价的函数，取值范围是0到1，值越小，说明越平衡。</p>
+<p>对于MoveCostFunction来说，初始状态就是最佳状态，因为不需要任何移动，而移动所有region则是最差状态。<br>而对于其它CostFunciton，则需要分别去考虑最差和最佳时的值具体是什么，比如对于RegionCountSkewCostFunction，最差状态是所有reigon都集中在单个regionserver上，而最佳状态是所有regionserver上的region数量都等于平均数。</p>
+<p>值得注意的是，对于ServerLocalityCostFunction及其它数据本地化相关因子来说，最佳状态并非是完全本地化，而是基于当前hdfs的block分布状态，所能达到的最大本地化值，</p>
+<p>收益的判断需要对doAction之前和之后的totalCost进行比较，而totalCost是对各个因子的cost加权求和得到的，如下所示，实线框为初始状态时的cost，模拟执行了action之后得到了虚线框代表的cost，有的增加有的减小，最后综合下来的增减情况就代表了执行该action是否有价值。</p>
+<p><img src="/../images/hbase/07d2b94044f25913dd473ed0abdc49f9fda67da0.png" alt="balancer_"></p>
+<p>CandidateGenerator生成action的次数有一定限制，称为maxStep，该值与集群配置以及集群规模相关。</p>
+<p>核心关注的几个Region：</p>
+<p>RegionCountSkewCostFunction、MoveCostFunction、ServerLocalityCostFunction、RackLocalityCostFunction、TableSkewCostFunction、ReadRequestCostFunction、WriteRequestCostFunction、MemStoreSizeCostFunction、StoreFileCostFunction</p>
+<p><strong>MoveCostFunction</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">double</span> <span class="title function_">cost</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="comment">// 获取最大移动个数。[x * 0.25, 600] </span></span><br><span class="line">    <span class="type">int</span> <span class="variable">maxMoves</span> <span class="operator">=</span> Math.max((<span class="type">int</span>) (cluster.numRegions * maxMovesPercent),</span><br><span class="line">                            DEFAULT_MAX_MOVES);</span><br><span class="line"></span><br><span class="line">    <span class="type">double</span> <span class="variable">moveCost</span> <span class="operator">=</span> cluster.numMovedRegions;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (moveCost &gt; maxMoves) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1000000</span>;   <span class="comment">// return a number much greater than any of the other cost</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> scale(<span class="number">0</span>, Math.min(cluster.numRegions, maxMoves), moveCost);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">protected</span> <span class="type">double</span> <span class="title function_">scale</span><span class="params">(<span class="type">double</span> min, <span class="type">double</span> max, <span class="type">double</span> value)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (max &lt;= min || value &lt;= min) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> ((max - min) == <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> Math.max(<span class="number">0d</span>, Math.min(<span class="number">1d</span>, (value - min) / (max - min)));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// numMovedRegions的计算方式。</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">doAction</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (initialRegionIndexToServerIndex[region] == newServer) &#123;</span><br><span class="line">        numMovedRegions--; <span class="comment">//region moved back to original location</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (oldServer &gt;= <span class="number">0</span> &amp;&amp; initialRegionIndexToServerIndex[region] == oldServer) &#123;</span><br><span class="line">        numMovedRegions++; <span class="comment">//region moved from original location</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>RegionCountSkewCostFunction（权重很高）</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">double</span> <span class="title function_">cost</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (stats == <span class="literal">null</span> || stats.length != cluster.numServers) &#123;</span><br><span class="line">        <span class="comment">// numServers会在每次Balance时创建</span></span><br><span class="line">        stats = <span class="keyword">new</span> <span class="title class_">double</span>[cluster.numServers];</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span><span class="number">0</span>; i &lt; cluster.numServers; i++) &#123;</span><br><span class="line">        stats[i] = cluster.regionsPerServer[i].length;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> costFromArray(stats);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 以线上1990个Region和16个RS计算</span></span><br><span class="line"><span class="keyword">protected</span> <span class="type">double</span> <span class="title function_">costFromArray</span><span class="params">(<span class="type">double</span>[] stats)</span> &#123;</span><br><span class="line">    <span class="type">double</span> <span class="variable">totalCost</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line">    <span class="comment">// 所有的region总数量</span></span><br><span class="line">    </span><br><span class="line">    <span class="type">double</span> <span class="variable">total</span> <span class="operator">=</span> getSum(stats);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 所有的RS数</span></span><br><span class="line">    <span class="type">double</span> <span class="variable">count</span> <span class="operator">=</span> stats.length;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 平均每个RS个数 </span></span><br><span class="line">    <span class="type">double</span> <span class="variable">mean</span> <span class="operator">=</span> total/count;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 最差分布的cost，即有一个server上负载了所有region，其他server上region为0的cost</span></span><br><span class="line">    <span class="type">double</span> <span class="variable">max</span> <span class="operator">=</span> ((count - <span class="number">1</span>) * mean) + (total - mean);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// It&#x27;s possible that there aren&#x27;t enough regions to go around</span></span><br><span class="line">    <span class="comment">// 最优分布的cost</span></span><br><span class="line">    <span class="type">double</span> min;</span><br><span class="line">    <span class="keyword">if</span> (count &gt; total) &#123;</span><br><span class="line">        min = ((count - total) * mean) + ((<span class="number">1</span> - mean) * total);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// Some will have 1 more than everything else. </span></span><br><span class="line">        <span class="type">int</span> <span class="variable">numHigh</span> <span class="operator">=</span> (<span class="type">int</span>) (total - (Math.floor(mean) * count));</span><br><span class="line">        <span class="type">int</span> <span class="variable">numLow</span> <span class="operator">=</span> (<span class="type">int</span>) (count - numHigh);</span><br><span class="line">        min = (numHigh * (Math.ceil(mean) - mean)) + (numLow * (mean - Math.floor(mean)));</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">    min = Math.max(<span class="number">0</span>, min);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 计算当前的cost</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i=<span class="number">0</span>; i&lt;stats.length; i++) &#123;</span><br><span class="line">        <span class="type">double</span> <span class="variable">n</span> <span class="operator">=</span> stats[i];</span><br><span class="line">        <span class="type">double</span> <span class="variable">diff</span> <span class="operator">=</span> Math.abs(mean - n);</span><br><span class="line">        totalCost += diff;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 计算最终的cost</span></span><br><span class="line">    <span class="type">double</span> <span class="variable">scaled</span> <span class="operator">=</span>  scale(min, max, totalCost);</span><br><span class="line">    <span class="keyword">return</span> scaled;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>hbase.master.balancer.stochastic.regionCountCost。regionCountCost权重，默认值为500；</p>
+<p>用线下环境做测试：</p>
+<p><img src="/../images/hbase/lQLPJxZc3z7s6bHM2c0CGLBFpW5qBdzkrQKZOlXxANYA_536_217.png"></p>
+<p>total：2790  count：3  mean：930</p>
+<p>max &#x3D; (3-1) * 930 + 2790 - 930 &#x3D; 3720</p>
+<p>min &#x3D; 1</p>
+<p>当前cost：（1395 -930） * 2 + 930 &#x3D; 1860</p>
+<p>该CostFunction返回的cost：1860 &#x2F; 3720 &#x3D; 0.5</p>
+<p>重启停掉的Region后：</p>
+<p><img src="/../images/hbase/1654081128(1).jpg"></p>
+<p><strong>TableSkewCostFunction</strong></p>
+<p>单个表在某个RS上最大的Region数。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">double</span> <span class="title function_">cost</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">double</span> <span class="variable">max</span> <span class="operator">=</span> cluster.numRegions;	<span class="comment">// 总Region数</span></span><br><span class="line">    <span class="type">double</span> <span class="variable">min</span> <span class="operator">=</span> ((<span class="type">double</span>) cluster.numRegions) / cluster.numServers;	<span class="comment">//每个Region的平均数</span></span><br><span class="line">    <span class="type">double</span> <span class="variable">value</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 各table在单个RS中的最大region数</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; cluster.numMaxRegionsPerTable.length; i++) &#123;</span><br><span class="line">        value += cluster.numMaxRegionsPerTable[i];</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> scale(min, max, value);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>负载相关的CostFunction</strong></p>
+<p>Read、Write、MemStore、StoreFile实现逻辑一致。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">double</span> <span class="title function_">cost</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (clusterStatus == <span class="literal">null</span> || loads == <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (stats == <span class="literal">null</span> || stats.length != cluster.numServers) &#123;</span><br><span class="line">        stats = <span class="keyword">new</span> <span class="title class_">double</span>[cluster.numServers];</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 遍历所有的RS</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span><span class="number">0</span>; i &lt; stats.length; i++) &#123;</span><br><span class="line">        <span class="comment">//Cost this server has from RegionLoad</span></span><br><span class="line">        <span class="type">long</span> <span class="variable">cost</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// for every region on this server get the rl</span></span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> regionIndex:cluster.regionsPerServer[i]) &#123;</span><br><span class="line">            <span class="comment">// regionLoad，默认会取最近15次的流量统计做平均值。15次由StochasticLoadBalancer的numRegionLoadsToRemember参数配置。</span></span><br><span class="line">            <span class="comment">// hbase.master.balancer.stochastic.numRegionLoadsToRemember，这个RegionLoad的更新策略在下面分析。</span></span><br><span class="line">            Collection&lt;BalancerRegionLoad&gt; regionLoadList =  cluster.regionLoads[regionIndex];</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Now if we found a region load get the type of cost that was requested.</span></span><br><span class="line">            <span class="keyword">if</span> (regionLoadList != <span class="literal">null</span>) &#123;</span><br><span class="line">                <span class="comment">// 计算每个Region的Cost。核心代码在下面。</span></span><br><span class="line">                cost = (<span class="type">long</span>) (cost + getRegionLoadCost(regionLoadList));</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Add the total cost to the stats.</span></span><br><span class="line">        <span class="comment">// 计算每个RS的cost</span></span><br><span class="line">        stats[i] = cost;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Now return the scaled cost from data held in the stats object.</span></span><br><span class="line">    <span class="comment">// 计算整个集群的cost，和上面RegionCount算法一致。</span></span><br><span class="line">    <span class="keyword">return</span> costFromArray(stats);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">protected</span> <span class="type">double</span> <span class="title function_">getRegionLoadCost</span><span class="params">(Collection&lt;BalancerRegionLoad&gt; regionLoadList)</span> &#123;</span><br><span class="line">    <span class="type">double</span> <span class="variable">cost</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line">    <span class="type">double</span> <span class="variable">previous</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line">    <span class="type">boolean</span> <span class="variable">isFirst</span> <span class="operator">=</span> <span class="literal">true</span>;</span><br><span class="line">    <span class="keyword">for</span> (BalancerRegionLoad rl : regionLoadList) &#123;</span><br><span class="line">        <span class="type">double</span> <span class="variable">current</span> <span class="operator">=</span> getCostFromRl(rl);</span><br><span class="line">        <span class="keyword">if</span> (isFirst) &#123;</span><br><span class="line">            isFirst = <span class="literal">false</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            cost += current - previous;</span><br><span class="line">        &#125;</span><br><span class="line">        previous = current;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> Math.max(<span class="number">0</span>, cost / (regionLoadList.size() - <span class="number">1</span>));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 关注点：Write、Read等负载信息是如何统计出来的</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title function_">updateRegionLoad</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="comment">// We create a new hashmap so that regions that are no longer there are removed.</span></span><br><span class="line">    <span class="comment">// However we temporarily need the old loads so we can use them to keep the rolling average.</span></span><br><span class="line">    Map&lt;String, Deque&lt;BalancerRegionLoad&gt;&gt; oldLoads = loads;</span><br><span class="line">    loads = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;();</span><br><span class="line"></span><br><span class="line">    clusterStatus.getLiveServerMetrics().forEach((ServerName sn, ServerMetrics sm) -&gt; &#123;</span><br><span class="line">        sm.getRegionMetrics().forEach((<span class="type">byte</span>[] regionName, RegionMetrics rm) -&gt; &#123;</span><br><span class="line">            <span class="type">String</span> <span class="variable">regionNameAsString</span> <span class="operator">=</span> RegionInfo.getRegionNameAsString(regionName);</span><br><span class="line">            Deque&lt;BalancerRegionLoad&gt; rLoads = oldLoads.get(regionNameAsString);</span><br><span class="line">            <span class="keyword">if</span> (rLoads == <span class="literal">null</span>) &#123;</span><br><span class="line">                rLoads = <span class="keyword">new</span> <span class="title class_">ArrayDeque</span>&lt;&gt;(numRegionLoadsToRemember + <span class="number">1</span>);</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (rLoads.size() &gt;= numRegionLoadsToRemember) &#123;</span><br><span class="line">                rLoads.remove();</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// 更新这一次的RegionLoad</span></span><br><span class="line">            rLoads.add(<span class="keyword">new</span> <span class="title class_">BalancerRegionLoad</span>(rm));</span><br><span class="line">            loads.put(regionNameAsString, rLoads);</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(CostFromRegionLoadFunction cost : regionLoadFunctions) &#123;</span><br><span class="line">        cost.setLoads(loads);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 疑问：RegionLoad多久上报一次</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ClusterStatusChore</span> <span class="keyword">extends</span> <span class="title class_">ScheduledChore</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">Logger</span> <span class="variable">LOG</span> <span class="operator">=</span> LoggerFactory.getLogger(ClusterStatusChore.class);</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> HMaster master;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> LoadBalancer balancer;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ClusterStatusChore</span><span class="params">(HMaster master, LoadBalancer balancer)</span> &#123;</span><br><span class="line">        <span class="comment">// 疑问解答：每1分钟上报一次metric指标</span></span><br><span class="line">        <span class="built_in">super</span>(master.getServerName() + <span class="string">&quot;-ClusterStatusChore&quot;</span>, master, master.getConfiguration().getInt(</span><br><span class="line">            <span class="string">&quot;hbase.balancer.statusPeriod&quot;</span>, <span class="number">60000</span>));</span><br><span class="line">        <span class="built_in">this</span>.master = master;</span><br><span class="line">        <span class="built_in">this</span>.balancer = balancer;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">chore</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            balancer.setClusterMetrics(master.getClusterMetricsWithoutCoprocessor());</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedIOException e) &#123;</span><br><span class="line">            LOG.warn(<span class="string">&quot;Ignoring interruption&quot;</span>, e);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 通过代码分析，balance时的负载是取的最近15分钟的数据做的平均值。</span></span><br></pre></td></tr></table></figure>
+
+
+
+<table>
+<thead>
+<tr>
+<th>CostFunction</th>
+<th>默认权重</th>
+<th>cost计算值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>RegionCountSkewCostFunction</td>
+<td>500</td>
+<td>0.065</td>
+</tr>
+<tr>
+<td>MoveCostFunction</td>
+<td>7</td>
+<td>x&#x2F;600</td>
+</tr>
+<tr>
+<td>ServerLocalityCostFunction</td>
+<td>25</td>
+<td></td>
+</tr>
+<tr>
+<td>RackLocalityCostFunction</td>
+<td>15</td>
+<td></td>
+</tr>
+<tr>
+<td>TableSkewCostFunction</td>
+<td>35</td>
+<td></td>
+</tr>
+<tr>
+<td>ReadRequestCostFunction</td>
+<td>5</td>
+<td></td>
+</tr>
+<tr>
+<td>WriteRequestCostFunction</td>
+<td>5</td>
+<td></td>
+</tr>
+<tr>
+<td>MemStoreSizeCostFunction</td>
+<td>5</td>
+<td></td>
+</tr>
+<tr>
+<td>StoreFileCostFunction</td>
+<td>5</td>
+<td></td>
+</tr>
+</tbody></table>
+<h4 id="生成执行计划"><a href="#生成执行计划" class="headerlink" title="生成执行计划"></a>生成执行计划</h4><p><img src="/../images/hbase/a30b0ece6a41efbfece74466cc2e48cefdfc9bf3.png"></p>
+<p>所谓的执行计划，就是一些action集合。action的类型有：AssignRegionAction、MoveRegionAction和SwapRegionsAction三种。</p>
+<p>而action由CandidateGenerator产生，核心代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Cluster.Action <span class="title function_">nextAction</span><span class="params">(Cluster cluster)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> candidateGenerators.get(RANDOM.nextInt(candidateGenerators.size()))</span><br><span class="line">        .generate(cluster);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中，CandidateGenerator目前主要是以下几种：</p>
+<p><img src="/../images/hbase/CandidateGenerator.png"></p>
+<p>而在StochasticLoadBalancer中，使用了以下四种：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (<span class="built_in">this</span>.candidateGenerators == <span class="literal">null</span>) &#123;</span><br><span class="line">    candidateGenerators = Lists.newArrayList();</span><br><span class="line">    candidateGenerators.add(<span class="keyword">new</span> <span class="title class_">RandomCandidateGenerator</span>());</span><br><span class="line">    candidateGenerators.add(<span class="keyword">new</span> <span class="title class_">LoadCandidateGenerator</span>());</span><br><span class="line">    candidateGenerators.add(localityCandidateGenerator);</span><br><span class="line">    candidateGenerators.add(<span class="keyword">new</span> <span class="title class_">RegionReplicaRackCandidateGenerator</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>RandomCandidateGenerator</strong></p>
+<ol>
+<li>随机选择2个server，1个称为thisServer，另1个称为otherServer；</li>
+<li>对于region数量更多的那个server，随机选出1个region；</li>
+<li>对于region数量更少的那个server，有50%概率选出0个region，有50%概率选出1个region；</li>
+<li>如果第3步选出了0个region，则返回MoveRegionAction，否则返回SwapRegionsAction；</li>
+</ol>
+<p><strong>LoadCandidateGenerator</strong></p>
+<ol>
+<li>将所有server按regionCount排序；</li>
+<li>找出region最多和最少的2个server；</li>
+<li>后续步骤与RandomCandidateGenerator一致；</li>
+</ol>
+<p><strong>LocalityBasedCandidateGenerator</strong></p>
+<ol>
+<li>将所有region打乱顺序；</li>
+<li>遍历这些region；</li>
+<li>获取当前这个region(称为fromRegion)的mostLocalServer(称为toServer)，如果与当前所在server(称为fromServer)一致，则回到第2步，否则到下一步；</li>
+<li>如果toServer的region数量小于平均值，则直接返回一个MoveRegionAction，否则到下一步；</li>
+<li>遍历toServer上的region(称为toRegion)，如果能找到一个region，与fromRegion交换可使得总体locality增加，则返回一个SwapRegionsAction，否则回到第2步；</li>
+</ol>
+<h2 id="业务分析"><a href="#业务分析" class="headerlink" title="业务分析"></a>业务分析</h2><p>在HBase的CostFunction中可以看出，RegionCount权重很高。它的目的主要是为了让每个RS中管理的Region数尽可能均匀。其余的Cost用来辅助计算。</p>
+<p>Balance计算公式：cost &#x3D; sum[f(cost) * multiplier] &#x2F; sum[multiplier] &lt; 0.05</p>
+<p>cost &#x3D; (f(RegionCountSkewCostFunction) * 500 + f(MoveCostFunction) * 7 + f(ServerLocalityCostFunction) * 25 + f(RackLocalityCostFunction) * 15 + f(TableSkewCostFunction) * 35 + f(ReadRequestCostFunction) * 5  + f(WriteRequestCostFunction) * 5 + f(MemStoreSizeCostFunction) * 5 + f(StoreFileCostFunction) * 5) &#x2F; ( 500 + 7 + 25 + 15 + 35 +20)</p>
+<h3 id="场景分析"><a href="#场景分析" class="headerlink" title="场景分析"></a>场景分析</h3><p><strong>1. 单个RS宕机重启后无法分配Region，是什么原因</strong></p>
+<p>在上面分析的CostFunction中，RegionCountCostFunction权重最高。</p>
+<p>默认容忍的不均衡比率为0.05，当小于0.05时，不触发balance。0.05 * 602 &#x2F; 500 &#x3D; 0.0602</p>
+<p>即：如果RegionCountCostFunction的cost值小于0.0602时，很有可能不进行balance。</p>
+<p>和平均值差异个数 &#x2F; max &gt; 0.0602</p>
+<p>以线上2000个Region为例。max &#x3D; 3750。即：与平均值差异达到226以上，才可能进行balance。</p>
+<p>2000个Region，分到16个RS上，平均值为125。分到15个RS上，平均值为133。</p>
+<p>因此，启动一个RS后，差异值为：125 + 8 * 15 &#x3D; 245</p>
+<p><strong>2. 假设其它都完全平衡，Write差异多少会触发Balance</strong></p>
+<p>设：集群中WriteRequestCost值为 x ；</p>
+<p>x * 5 &#x2F; 602 &gt; 0.05</p>
+<p>x &gt; 6.02</p>
+<p>则：集群中，WriteRequestCost 大于 6.02 时才会进行balance。</p>
+<p>因为每个cost的函数取值范围为[0, 1]，即：假使每个RS的Region都分布很均匀，但其中一个RS负责所有的写。那么，也不再进行平衡。</p>
+<p>也就是说，RegionCountSkewCostFunction做决策，WriteRequestCostFunction做协助。是否进行balance，由RegionCountSkewCostFunction决定，在进行balance时，可以通过WriteRequestCostFunction让它尽可能最佳。</p>
+<p><strong>3. 如果把其它CostFunction都禁用，只保留RegionCount和WriteRequest会咋样</strong></p>
+<p>如果把其它的都禁用，重启整个HBase，理论上会出现，Region在RS上分布均匀，且每个RS的写基本均衡。</p>
+<p>带来的影响是：Table分布可能不均、Region文件本地化可能不够平衡、HFile可能会不均衡（在我们业务场景下不会出现）。</p>
+<p>Table分布不均带来的影响是：如果某个table分布在其中一个RS上，这个RS出现繁忙时，整个table的操作性能也会跟着下降。（以我们当前的业务场景，核心表就只有一个，故，它的影响基本可以忽略）。</p>
+<p>Region文件本地化不均衡带来的影响：查询变慢。</p>
+<p><strong>4. 增大WriteRequest权重会怎样</strong></p>
+<p>如果以写为主的集群，增加WriteRequest的权重，会优先根据写流量进行平衡。是否该进行balance，决策权由写流量控制。每个RS上分布的Region数量可能会存在一点差异，不完全平均。</p>
+<p><strong>5. 我们的业务环境下该如何配置</strong></p>
+<p>我们是写多读少型，且大部分Region处于不活跃状态。因此，我们业务下的权重分配应该是：WriteRequest高权重，RegionCount次之，其它保持不变。</p>
+<p>WriteRequest和RegionCount分别配置多少合理？</p>
+<p>RegionCount的默认权重是500，因此，WriteRequest的权重也保持为500。</p>
+<p>高WriteRequest权重下带来的影响：</p>
+<ol>
+<li>补数据或跑rollup时，会有写波动。它们是按Region跑的。会带来频繁的balance。</li>
+</ol>
+<p>为解决这个问题，可以让balance时间由5分钟触发一次变为1小时触发一次。</p>
+<p>RegionCount权重给多少合理呢？</p>
+<p>而在我们的业务场景下，有大部分Region是闲置的。即使限制，也要尽可能均匀的分配在每个RS上，因为一旦出现大范围历史查询时，会对某个RS造成压力。</p>
+<p>假设WriteRequest均衡时，RegionCount差异存在10%以上时，权重达到多少才能进行balance？</p>
+<p>x * 0.1 &#x2F; x + 597 &gt; 0.05   &#x3D;&#x3D;&gt;  x &gt; 597  已超过WriteRequest权重。</p>
+<p>假设RegionCount存在20%以上差异时，权重需要高于199。当RegionCount存在30%以上差异时，权重需要高于119.4。</p>
+<p>可以将RegionCount权重设置为120。此时，WriteRequest能容忍的差异为：y * 500 &#x2F; 717 &gt; 0.05  y&gt;0.0717</p>
+<p>假设总的写入量为70K。max &#x3D; 70&#x2F;15 * 13 + 70 &#x3D; 130.67，总流量差异为：9.36K。即，平均每个RS与平均的写入流量差异为：0.6K。</p>
+<h2 id="业务验证"><a href="#业务验证" class="headerlink" title="业务验证"></a>业务验证</h2><h3 id="场景构建"><a href="#场景构建" class="headerlink" title="场景构建"></a>场景构建</h3><p>线下环境只有3个RS。</p>
+<p>第一步：构建一个共90个Region的表，将WriteRequest权重设置为500，RegionCount权重设置为120。</p>
+<p>第二步：初次启动HBase的表象应该为：每个RS负责30个Region。因为没有写请求，WriteRequestCost为0。</p>
+<p>第三步：找出某个RS上的所有Region，为这些Region上发数据，总请求量为15K。此时的现象为：单个RS负责15K写请求，其余两个RS为0。</p>
+<p>第四步：5分钟后自动触发balance，此时的现象应该为：每个RS写请求近似均匀5K，总差异不超过：1.4K，RegionCount也近似均匀30。</p>
+<h3 id="实际验证"><a href="#实际验证" class="headerlink" title="实际验证"></a>实际验证</h3><p>第一步：生成split file。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">vim <span class="built_in">split</span></span><br><span class="line">内容：</span><br><span class="line">1</span><br><span class="line">2</span><br><span class="line">……</span><br><span class="line">88</span><br><span class="line">89</span><br></pre></td></tr></table></figure>
+
+<p>第二步：创建带预分区的测试表</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hbase&gt; create <span class="string">&#x27;balance_test&#x27;</span>, <span class="string">&#x27;t&#x27;</span>, SPLITS_FILE=&gt;<span class="string">&#x27;/home/lizy/split&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>第三步：更改hbase配置后重启</p>
+<p><img src="/../images/hbase/20220606145148.jpg"></p>
+<p><img src="/../images/hbase/20220606145303.jpg"></p>
+<p>第四步：找出某个RS下的所有Region进行写操作</p>
+<p>以bigdata-master-99为例：</p>
+<p><img src="/../images/hbase/20220606145715.jpg"></p>
+<p>第五步：写一段时间后，查看Balance日志及balance结果</p>
+<p><img src="/../images/hbase/20220606165150.jpg"></p>
+<p><img src="/../images/hbase/1654505979702.jpg"></p>
+<p>通过日志分析：执行了3次balance后，写平衡后，再没执行过balance。</p>
+<p>第六步：模拟补数据场景</p>
+<p>在步骤五的基础上，再增加一个写操作。只不过该写操作是按Region写的。每个Region写30s，换下一个Region。30个Region持续写15分钟，看整体效果。</p>
+<p><img src="/../images/hbase/20220607105453.jpg"> <img src="/../images/hbase/20220607105608.jpg"></p>
+<p>在进行补数据的过程中，发生了多次balance，补完以后，其中一个RS无写入，再balance之后才平衡。</p>
+<p>意味着，在进行补数据时，单纯的调整costFunction权重是不够的。</p>
+<p>第七步：将balance时间间隔设置为1小时，balance时用到的numRegionLoadsToRemember由15调整到60。目的：补数据、rollup等操作在短时间内是不平衡的，但是在小时级别下，基本是均匀的。除非补历史大范围全量数据（一个任务跑几天的）。</p>
+<p><img src="/../images/hbase/20220607110901.jpg"></p>
+<p>第八步：重启HBase，重复以上操作</p>
+<p><img src="/../images/hbase/20220607121036.jpg"></p>
+<p>搜索Balance日志，并没看到执行了balance。</p>
+<p><img src="/../images/hbase/20220607121226.jpg"></p>
+<p>参考文献：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/ihaxiaolin/article/details/122984712">HBase balancer原理解析和一些优化方案</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.yiz96.com/hbase-src-4-region-balance/">HBase源码分析4—Region Balance</a></p>
+<p><a target="_blank" rel="noopener" href="https://icode.best/i/08442445750231">balancer-爱代码爱编程</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/hbase/" rel="tag"><i class="fa fa-tag"></i> hbase</a>
+              <a href="/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/" rel="tag"><i class="fa fa-tag"></i> 性能调优</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/05/12/%E5%8F%91%E7%94%9F%E9%9B%AA%E5%B4%A9%E6%95%88%E5%BA%94%E5%90%8E%EF%BC%8C%E4%B8%9A%E5%8A%A1%E5%9C%BA%E6%99%AF%E4%B8%8B%E7%9A%84%E5%BA%94%E5%AF%B9%E7%AD%96%E7%95%A5/" rel="prev" title="发生雪崩效应后，业务场景下的应对策略">
+      <i class="fa fa-chevron-left"></i> 发生雪崩效应后，业务场景下的应对策略
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Balancer%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="nav-number">2.</span> <span class="nav-text">Balancer源码分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#balancer%E8%A7%A6%E5%8F%91%E6%97%B6%E6%9C%BA"><span class="nav-number">2.1.</span> <span class="nav-text">balancer触发时机</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B"><span class="nav-number">2.2.</span> <span class="nav-text">执行过程</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="nav-number">2.2.1.</span> <span class="nav-text">初始化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A3%80%E6%9F%A5%E6%98%AF%E5%90%A6%E9%9C%80%E8%A6%81%E6%89%A7%E8%A1%8Cbalance"><span class="nav-number">2.2.2.</span> <span class="nav-text">检查是否需要执行balance</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%94%9F%E6%88%90%E6%89%A7%E8%A1%8C%E8%AE%A1%E5%88%92"><span class="nav-number">2.2.3.</span> <span class="nav-text">生成执行计划</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%9A%E5%8A%A1%E5%88%86%E6%9E%90"><span class="nav-number">3.</span> <span class="nav-text">业务分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9C%BA%E6%99%AF%E5%88%86%E6%9E%90"><span class="nav-number">3.1.</span> <span class="nav-text">场景分析</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%9A%E5%8A%A1%E9%AA%8C%E8%AF%81"><span class="nav-number">4.</span> <span class="nav-text">业务验证</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9C%BA%E6%99%AF%E6%9E%84%E5%BB%BA"><span class="nav-number">4.1.</span> <span class="nav-text">场景构建</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E9%99%85%E9%AA%8C%E8%AF%81"><span class="nav-number">4.2.</span> <span class="nav-text">实际验证</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="乡间小鹿"
+      src="/images/head.jpg">
+  <p class="site-author-name" itemprop="name">乡间小鹿</p>
+  <div class="site-description" itemprop="description">每一个不曾起舞的日子都是对生命的辜负</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">25</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">乡间小鹿</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
