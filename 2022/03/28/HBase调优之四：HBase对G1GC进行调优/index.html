@@ -2,9 +2,10 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
-<meta name="theme-color" content="#222">
-<meta name="generator" content="Hexo 6.2.0">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.2.0">
+
+
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
@@ -13,14 +14,13 @@
 <link rel="stylesheet" href="/css/main.css">
 
 
-<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
 
-<script id="hexo-configurations">
-    var NexT = window.NexT || {};
-    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
-  </script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha256-DfWjNxDkM94fVBWx1H5BMMp0Zq7luBlV8QRcSES7s+0=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
 
-  <meta name="description" content="HBase is the big data store of choice for engineering at HubSpot. It’s a complicated data store with a multitude of levers and knobs that can be adjusted to tune performance.">
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.12.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="HBase is the big data store of choice for engineering at HubSpot. It’s a complicated data store with a multitude of levers and knobs that can be adjusted to tune performance.">
 <meta property="og:type" content="article">
 <meta property="og:title" content="HBase调优之四：HBase对G1GC进行调优">
 <meta property="og:url" content="http://example.com/2022/03/28/HBase%E8%B0%83%E4%BC%98%E4%B9%8B%E5%9B%9B%EF%BC%9AHBase%E5%AF%B9G1GC%E8%BF%9B%E8%A1%8C%E8%B0%83%E4%BC%98/index.html">
@@ -55,72 +55,46 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://product.hubspot.com/hs-fs/hubfs/G1GC1-1.png?width=671&height=519&name=G1GC1-1.png">
 
+
 <link rel="canonical" href="http://example.com/2022/03/28/HBase%E8%B0%83%E4%BC%98%E4%B9%8B%E5%9B%9B%EF%BC%9AHBase%E5%AF%B9G1GC%E8%BF%9B%E8%A1%8C%E8%B0%83%E4%BC%98/">
 
 
-<script id="page-configurations">
-  // https://hexo.io/docs/variables.html
-  CONFIG.page = {
-    sidebar: "",
-    isHome : false,
-    isPost : true,
-    lang   : 'zh-CN'
-  };
-</script>
 
-  <title>HBase调优之四：HBase对G1GC进行调优 | 大数据架构之道</title>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://example.com/2022/03/28/HBase%E8%B0%83%E4%BC%98%E4%B9%8B%E5%9B%9B%EF%BC%9AHBase%E5%AF%B9G1GC%E8%BF%9B%E8%A1%8C%E8%B0%83%E4%BC%98/","path":"2022/03/28/HBase调优之四：HBase对G1GC进行调优/","title":"HBase调优之四：HBase对G1GC进行调优"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>HBase调优之四：HBase对G1GC进行调优 | 大数据架构之道</title>
   
 
 
 
 
 
-
   <noscript>
-  <style>
-  .use-motion .brand,
-  .use-motion .menu-item,
-  .sidebar-inner,
-  .use-motion .post-block,
-  .use-motion .pagination,
-  .use-motion .comments,
-  .use-motion .post-header,
-  .use-motion .post-body,
-  .use-motion .collection-header { opacity: initial; }
-
-  .use-motion .site-title,
-  .use-motion .site-subtitle {
-    opacity: initial;
-    top: initial;
-  }
-
-  .use-motion .logo-line-before i { left: initial; }
-  .use-motion .logo-line-after i { right: initial; }
-  </style>
-</noscript>
-
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
 </head>
 
-<body itemscope itemtype="http://schema.org/WebPage">
-  <div class="container use-motion">
-    <div class="headband"></div>
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
 
+  <main class="main">
     <header class="header" itemscope itemtype="http://schema.org/WPHeader">
       <div class="header-inner"><div class="site-brand-container">
   <div class="site-nav-toggle">
-    <div class="toggle" aria-label="切换导航栏">
-      <span class="toggle-line toggle-line-first"></span>
-      <span class="toggle-line toggle-line-middle"></span>
-      <span class="toggle-line toggle-line-last"></span>
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
     </div>
   </div>
 
   <div class="site-meta">
 
     <a href="/" class="brand" rel="start">
-      <span class="logo-line-before"><i></i></span>
-      <h1 class="site-title">大数据架构之道</h1>
-      <span class="logo-line-after"><i></i></span>
+      <i class="logo-line"></i>
+      <p class="site-title">大数据架构之道</p>
+      <i class="logo-line"></i>
     </a>
   </div>
 
@@ -132,34 +106,8 @@
 
 
 
-
 <nav class="site-nav">
-  <ul id="menu" class="menu">
-        <li class="menu-item menu-item-home">
-
-    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
-
-  </li>
-        <li class="menu-item menu-item-about">
-
-    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
-
-  </li>
-        <li class="menu-item menu-item-tags">
-
-    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
-
-  </li>
-        <li class="menu-item menu-item-categories">
-
-    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
-
-  </li>
-        <li class="menu-item menu-item-archives">
-
-    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
-
-  </li>
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
   </ul>
 </nav>
 
@@ -167,66 +115,140 @@
 
 
 </div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Tuning-G1GC-For-Your-HBase-Cluster"><span class="nav-number">1.</span> <span class="nav-text">Tuning G1GC For Your HBase Cluster</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Original-GC-Tuning-State"><span class="nav-number">2.</span> <span class="nav-text">Original GC Tuning State</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Starting-Point-Heap-Sizes-and-Overall-Time-Spent-in-GC"><span class="nav-number">3.</span> <span class="nav-text">Starting Point: Heap Sizes and Overall Time Spent in GC</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Tuning-1-Goal-Lower-Total-Time-in-GC-Action-Raise-IHOP"><span class="nav-number">4.</span> <span class="nav-text">Tuning #1 Goal: Lower Total Time in GC - Action: Raise IHOP</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Result-Success"><span class="nav-number">5.</span> <span class="nav-text">Result: Success</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Tuning-2-Goal-Lower-Total-Time-in-GC-Action-Increase-Eden"><span class="nav-number">6.</span> <span class="nav-text">Tuning #2 Goal: Lower Total Time in GC - Action: Increase Eden</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Effects-on-Overall-GC-Time"><span class="nav-number">7.</span> <span class="nav-text">Effects on Overall GC Time</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Individual-STW-times"><span class="nav-number">8.</span> <span class="nav-text">Individual STW times</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#To-space-Exhaustion-Danger"><span class="nav-number">9.</span> <span class="nav-text">To-space Exhaustion Danger</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Result-Failure"><span class="nav-number">10.</span> <span class="nav-text">Result: Failure</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Tuning-3-Goal-Reduce-Individual-STW-Durations-Action-SurvivorRatio-amp-MaxTenuringThreshold"><span class="nav-number">11.</span> <span class="nav-text">Tuning #3 Goal: Reduce Individual STW Durations - Action: SurvivorRatio &amp; MaxTenuringThreshold</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Result-Theoretical-Success"><span class="nav-number">12.</span> <span class="nav-text">Result: Theoretical Success</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Tuning-4-Goal-Eliminate-Long-STW-Events-Action-G1MixedGCCountTarget-amp-G1HeapWastePercent"><span class="nav-number">13.</span> <span class="nav-text">Tuning #4 Goal: Eliminate Long STW Events - Action: G1MixedGCCountTarget &amp; G1HeapWastePercent</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Result-Success-1"><span class="nav-number">14.</span> <span class="nav-text">Result: Success</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Tuning-5-Goal-Stop-Losing-Nodes-Heap-Size-and-HBase-Configs"><span class="nav-number">15.</span> <span class="nav-text">Tuning #5 Goal: Stop Losing Nodes: Heap Size and HBase Configs</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Result-Success-2"><span class="nav-number">16.</span> <span class="nav-text">Result: Success</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Tuning-6-Goal-Eliminate-Long-STW-Events-Action-Increase-G1-Region-Size"><span class="nav-number">17.</span> <span class="nav-text">Tuning #6 Goal: Eliminate Long STW Events - Action: Increase G1 Region Size</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Result-Success-3"><span class="nav-number">18.</span> <span class="nav-text">Result: Success</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Tuning-7-Goal-Preventing-RegionServer-To-space-Exhaustion-Action-Extra-Heap-as-Buffer"><span class="nav-number">19.</span> <span class="nav-text">Tuning #7 Goal: Preventing RegionServer To-space Exhaustion - Action: Extra Heap as Buffer</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Result-Success-4"><span class="nav-number">20.</span> <span class="nav-text">Result: Success</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Notes"><span class="nav-number">21.</span> <span class="nav-text">Notes:</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Overall-Results-Goals-Achieved"><span class="nav-number">22.</span> <span class="nav-text">Overall Results: Goals Achieved!</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Summary-How-to-Tune-Your-HBase-Cluster"><span class="nav-number">23.</span> <span class="nav-text">Summary: How to Tune Your HBase Cluster</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Before-you-start-GC-amp-HBase-monitoring"><span class="nav-number">23.1.</span> <span class="nav-text">Before you start: GC &amp; HBase monitoring</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Step-0-Recommended-Defaults"><span class="nav-number">23.2.</span> <span class="nav-text">Step 0: Recommended Defaults</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Step-1-Determine-maximum-expected-HBase-usage"><span class="nav-number">23.3.</span> <span class="nav-text">Step 1: Determine maximum expected HBase usage</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Step-2-Set-Heap-size-IHOP-and-Eden-size"><span class="nav-number">23.4.</span> <span class="nav-text">Step 2: Set Heap size, IHOP, and Eden size</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Step-3-Adjust-HBase-configs-based-on-usage-caps"><span class="nav-number">23.5.</span> <span class="nav-text">Step 3: Adjust HBase configs based on usage caps</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Step-4-Adjust-additional-recommended-JVM-flags-for-GC-performance"><span class="nav-number">23.6.</span> <span class="nav-text">Step 4: Adjust additional recommended JVM flags for GC performance</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Step-5-Run-it"><span class="nav-number">23.7.</span> <span class="nav-text">Step 5: Run it!</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="乡间小鹿"
+      src="/images/head.jpg">
+  <p class="site-author-name" itemprop="name">乡间小鹿</p>
+  <div class="site-description" itemprop="description">每一个不曾起舞的日子都是对生命的辜负</div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
     </header>
 
     
-  <div class="back-to-top">
+  <div class="back-to-top" role="button" aria-label="返回顶部">
     <i class="fa fa-arrow-up"></i>
     <span>0%</span>
   </div>
 
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
 
-    <main class="main">
-      <div class="main-inner">
-        <div class="content-wrap">
-          
 
-          <div class="content post posts-expand">
-            
+    <div class="main-inner post posts-expand">
 
-    
+
+  
+
+
+<div class="post-block">
   
   
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://example.com/2022/03/28/HBase%E8%B0%83%E4%BC%98%E4%B9%8B%E5%9B%9B%EF%BC%9AHBase%E5%AF%B9G1GC%E8%BF%9B%E8%A1%8C%E8%B0%83%E4%BC%98/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/head.jpg">
       <meta itemprop="name" content="乡间小鹿">
-      <meta itemprop="description" content="每一个不曾起舞的日子都是对生命的辜负">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
       <meta itemprop="name" content="大数据架构之道">
+      <meta itemprop="description" content="每一个不曾起舞的日子都是对生命的辜负">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="HBase调优之四：HBase对G1GC进行调优 | 大数据架构之道">
+      <meta itemprop="description" content="HBase is the big data store of choice for engineering at HubSpot. It’s a complicated data store with a multitude of levers and knobs that can be adjusted to tune performance.">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
           HBase调优之四：HBase对G1GC进行调优
         </h1>
 
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-              
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+      
 
-              <time title="创建时间：2022-03-28 16:55:30 / 修改时间：17:01:46" itemprop="dateCreated datePublished" datetime="2022-03-28T16:55:30+08:00">2022-03-28</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/HBase%E8%B0%83%E4%BC%98/" itemprop="url" rel="index"><span itemprop="name">HBase调优</span></a>
-                </span>
-            </span>
+      <time title="创建时间：2022-03-28 16:55:30 / 修改时间：17:01:46" itemprop="dateCreated datePublished" datetime="2022-03-28T16:55:30+08:00">2022-03-28</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/HBase%E8%B0%83%E4%BC%98/" itemprop="url" rel="index"><span itemprop="name">HBase调优</span></a>
+        </span>
+    </span>
 
-          
+  
+</div>
+
             <div class="post-description">HBase is the big data store of choice for engineering at HubSpot. It’s a complicated data store with a multitude of levers and knobs that can be adjusted to tune performance.</div>
-
         </div>
       </header>
 
@@ -234,8 +256,6 @@
     
     
     <div class="post-body" itemprop="articleBody">
-
-      
         <h1 id="Tuning-G1GC-For-Your-HBase-Cluster"><a href="#Tuning-G1GC-For-Your-HBase-Cluster" class="headerlink" title="Tuning G1GC For Your HBase Cluster"></a>Tuning G1GC For Your HBase Cluster</h1><span id="more"></span>
 
 <p>HBase is the big data store of choice for engineering at HubSpot. It’s a complicated data store with a multitude of levers and knobs that can be adjusted to tune performance. We’ve put a lot of effort into optimizing the performance and stability of our HBase clusters, and recently discovered that suboptimal G1GC tuning was playing a big part in issues we were seeing, especially with stability.</p>
@@ -553,8 +573,7 @@
     
     
 
-      <footer class="post-footer">
-          
+    <footer class="post-footer">
           <div class="post-tags">
               <a href="/tags/hbase/" rel="tag"><i class="fa fa-tag"></i> hbase</a>
               <a href="/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/" rel="tag"><i class="fa fa-tag"></i> 性能调优</a>
@@ -562,167 +581,54 @@
 
         
 
-
-        
-    <div class="post-nav">
-      <div class="post-nav-item">
-    <a href="/2022/03/28/HBase%E8%B0%83%E4%BC%98%E4%B9%8B%E4%B8%89%EF%BC%9AG1GC%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/" rel="prev" title="HBase调优之三：G1GC基础知识">
-      <i class="fa fa-chevron-left"></i> HBase调优之三：G1GC基础知识
-    </a></div>
-      <div class="post-nav-item">
-    <a href="/2022/03/29/HBase%E8%B0%83%E4%BC%98%E4%B9%8B%E4%BA%94%EF%BC%9A%E5%88%86%E6%9E%90opentsdb%E5%AF%BC%E8%87%B4hbase%E6%95%B4%E7%82%B9GC%E5%BE%88%E9%AB%98%E9%97%AE%E9%A2%98/" rel="next" title="HBase调优之五：分析opentsdb导致hbase整点GC很高问题">
-      HBase调优之五：分析opentsdb导致hbase整点GC很高问题 <i class="fa fa-chevron-right"></i>
-    </a></div>
-    </div>
-      </footer>
-    
-  </article>
-  
-  
-  
-
-
-
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/03/28/HBase%E8%B0%83%E4%BC%98%E4%B9%8B%E4%B8%89%EF%BC%9AG1GC%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/" rel="prev" title="HBase调优之三：G1GC基础知识">
+                  <i class="fa fa-chevron-left"></i> HBase调优之三：G1GC基础知识
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/03/29/HBase%E8%B0%83%E4%BC%98%E4%B9%8B%E4%BA%94%EF%BC%9A%E5%88%86%E6%9E%90opentsdb%E5%AF%BC%E8%87%B4hbase%E6%95%B4%E7%82%B9GC%E5%BE%88%E9%AB%98%E9%97%AE%E9%A2%98/" rel="next" title="HBase调优之五：分析opentsdb导致hbase整点GC很高问题">
+                  HBase调优之五：分析opentsdb导致hbase整点GC很高问题 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
           </div>
-          
-
-<script>
-  window.addEventListener('tabs:register', () => {
-    let { activeClass } = CONFIG.comments;
-    if (CONFIG.comments.storage) {
-      activeClass = localStorage.getItem('comments_active') || activeClass;
-    }
-    if (activeClass) {
-      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
-      if (activeTab) {
-        activeTab.click();
-      }
-    }
-  });
-  if (CONFIG.comments.storage) {
-    window.addEventListener('tabs:click', event => {
-      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
-      let commentClass = event.target.classList[1];
-      localStorage.setItem('comments_active', commentClass);
-    });
-  }
-</script>
-
-        </div>
-          
-  
-  <div class="toggle sidebar-toggle">
-    <span class="toggle-line toggle-line-first"></span>
-    <span class="toggle-line toggle-line-middle"></span>
-    <span class="toggle-line toggle-line-last"></span>
-  </div>
-
-  <aside class="sidebar">
-    <div class="sidebar-inner">
-
-      <ul class="sidebar-nav motion-element">
-        <li class="sidebar-nav-toc">
-          文章目录
-        </li>
-        <li class="sidebar-nav-overview">
-          站点概览
-        </li>
-      </ul>
-
-      <!--noindex-->
-      <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Tuning-G1GC-For-Your-HBase-Cluster"><span class="nav-number">1.</span> <span class="nav-text">Tuning G1GC For Your HBase Cluster</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Original-GC-Tuning-State"><span class="nav-number">2.</span> <span class="nav-text">Original GC Tuning State</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Starting-Point-Heap-Sizes-and-Overall-Time-Spent-in-GC"><span class="nav-number">3.</span> <span class="nav-text">Starting Point: Heap Sizes and Overall Time Spent in GC</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Tuning-1-Goal-Lower-Total-Time-in-GC-Action-Raise-IHOP"><span class="nav-number">4.</span> <span class="nav-text">Tuning #1 Goal: Lower Total Time in GC - Action: Raise IHOP</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Result-Success"><span class="nav-number">5.</span> <span class="nav-text">Result: Success</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Tuning-2-Goal-Lower-Total-Time-in-GC-Action-Increase-Eden"><span class="nav-number">6.</span> <span class="nav-text">Tuning #2 Goal: Lower Total Time in GC - Action: Increase Eden</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Effects-on-Overall-GC-Time"><span class="nav-number">7.</span> <span class="nav-text">Effects on Overall GC Time</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Individual-STW-times"><span class="nav-number">8.</span> <span class="nav-text">Individual STW times</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#To-space-Exhaustion-Danger"><span class="nav-number">9.</span> <span class="nav-text">To-space Exhaustion Danger</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Result-Failure"><span class="nav-number">10.</span> <span class="nav-text">Result: Failure</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Tuning-3-Goal-Reduce-Individual-STW-Durations-Action-SurvivorRatio-amp-MaxTenuringThreshold"><span class="nav-number">11.</span> <span class="nav-text">Tuning #3 Goal: Reduce Individual STW Durations - Action: SurvivorRatio &amp; MaxTenuringThreshold</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Result-Theoretical-Success"><span class="nav-number">12.</span> <span class="nav-text">Result: Theoretical Success</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Tuning-4-Goal-Eliminate-Long-STW-Events-Action-G1MixedGCCountTarget-amp-G1HeapWastePercent"><span class="nav-number">13.</span> <span class="nav-text">Tuning #4 Goal: Eliminate Long STW Events - Action: G1MixedGCCountTarget &amp; G1HeapWastePercent</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Result-Success-1"><span class="nav-number">14.</span> <span class="nav-text">Result: Success</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Tuning-5-Goal-Stop-Losing-Nodes-Heap-Size-and-HBase-Configs"><span class="nav-number">15.</span> <span class="nav-text">Tuning #5 Goal: Stop Losing Nodes: Heap Size and HBase Configs</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Result-Success-2"><span class="nav-number">16.</span> <span class="nav-text">Result: Success</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Tuning-6-Goal-Eliminate-Long-STW-Events-Action-Increase-G1-Region-Size"><span class="nav-number">17.</span> <span class="nav-text">Tuning #6 Goal: Eliminate Long STW Events - Action: Increase G1 Region Size</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Result-Success-3"><span class="nav-number">18.</span> <span class="nav-text">Result: Success</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Tuning-7-Goal-Preventing-RegionServer-To-space-Exhaustion-Action-Extra-Heap-as-Buffer"><span class="nav-number">19.</span> <span class="nav-text">Tuning #7 Goal: Preventing RegionServer To-space Exhaustion - Action: Extra Heap as Buffer</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Result-Success-4"><span class="nav-number">20.</span> <span class="nav-text">Result: Success</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Notes"><span class="nav-number">21.</span> <span class="nav-text">Notes:</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Overall-Results-Goals-Achieved"><span class="nav-number">22.</span> <span class="nav-text">Overall Results: Goals Achieved!</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Summary-How-to-Tune-Your-HBase-Cluster"><span class="nav-number">23.</span> <span class="nav-text">Summary: How to Tune Your HBase Cluster</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Before-you-start-GC-amp-HBase-monitoring"><span class="nav-number">23.1.</span> <span class="nav-text">Before you start: GC &amp; HBase monitoring</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Step-0-Recommended-Defaults"><span class="nav-number">23.2.</span> <span class="nav-text">Step 0: Recommended Defaults</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Step-1-Determine-maximum-expected-HBase-usage"><span class="nav-number">23.3.</span> <span class="nav-text">Step 1: Determine maximum expected HBase usage</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Step-2-Set-Heap-size-IHOP-and-Eden-size"><span class="nav-number">23.4.</span> <span class="nav-text">Step 2: Set Heap size, IHOP, and Eden size</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Step-3-Adjust-HBase-configs-based-on-usage-caps"><span class="nav-number">23.5.</span> <span class="nav-text">Step 3: Adjust HBase configs based on usage caps</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Step-4-Adjust-additional-recommended-JVM-flags-for-GC-performance"><span class="nav-number">23.6.</span> <span class="nav-text">Step 4: Adjust additional recommended JVM flags for GC performance</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Step-5-Run-it"><span class="nav-number">23.7.</span> <span class="nav-text">Step 5: Run it!</span></a></li></ol></li></ol></div>
-      </div>
-      <!--/noindex-->
-
-      <div class="site-overview-wrap sidebar-panel">
-        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
-    <img class="site-author-image" itemprop="image" alt="乡间小鹿"
-      src="/images/head.jpg">
-  <p class="site-author-name" itemprop="name">乡间小鹿</p>
-  <div class="site-description" itemprop="description">每一个不曾起舞的日子都是对生命的辜负</div>
-</div>
-<div class="site-state-wrap motion-element">
-  <nav class="site-state">
-      <div class="site-state-item site-state-posts">
-          <a href="/archives/">
-        
-          <span class="site-state-item-count">26</span>
-          <span class="site-state-item-name">日志</span>
-        </a>
-      </div>
-      <div class="site-state-item site-state-categories">
-            <a href="/categories/">
-          
-        <span class="site-state-item-count">7</span>
-        <span class="site-state-item-name">分类</span></a>
-      </div>
-      <div class="site-state-item site-state-tags">
-            <a href="/tags/">
-          
-        <span class="site-state-item-count">10</span>
-        <span class="site-state-item-name">标签</span></a>
-      </div>
-  </nav>
+    </footer>
+  </article>
 </div>
 
 
 
-      </div>
-
-    </div>
-  </aside>
-  <div id="sidebar-dimmer"></div>
 
 
-      </div>
-    </main>
 
-    <footer class="footer">
-      <div class="footer-inner">
-        
+</div>
+  </main>
 
-        
+  <footer class="footer">
+    <div class="footer-inner">
+
 
 <div class="copyright">
-  
   &copy; 
   <span itemprop="copyrightYear">2022</span>
   <span class="with-love">
-    <i class="fa fa-user"></i>
+    <i class="fa fa-heart"></i>
   </span>
   <span class="author" itemprop="copyrightHolder">乡间小鹿</span>
 </div>
-  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
   </div>
 
-        
-
-
-
-
-
-
-
-
-      </div>
-    </footer>
-  </div>
+    </div>
+  </footer>
 
   
-  <script src="/lib/anime.min.js"></script>
-  <script src="/lib/velocity/velocity.min.js"></script>
-  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
 
-<script src="/js/utils.js"></script>
+  
 
-<script src="/js/motion.js"></script>
-
-
-<script src="/js/schemes/pisces.js"></script>
-
-
-<script src="/js/next-boot.js"></script>
 
 
 
@@ -732,20 +638,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-  
-
-  
 
 </body>
 </html>

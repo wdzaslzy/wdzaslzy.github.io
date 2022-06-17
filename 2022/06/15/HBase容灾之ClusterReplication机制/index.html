@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.2.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha256-DfWjNxDkM94fVBWx1H5BMMp0Zq7luBlV8QRcSES7s+0=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.12.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="HBase提供了一种集群复制机制。它通过传播WAL文件来保证多集群之间状态互相同步。一般情况下，这种ClusterReplication机制用于：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HBase容灾之ClusterReplication机制">
+<meta property="og:url" content="http://example.com/2022/06/15/HBase%E5%AE%B9%E7%81%BE%E4%B9%8BClusterReplication%E6%9C%BA%E5%88%B6/index.html">
+<meta property="og:site_name" content="大数据架构之道">
+<meta property="og:description" content="HBase提供了一种集群复制机制。它通过传播WAL文件来保证多集群之间状态互相同步。一般情况下，这种ClusterReplication机制用于：">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/images/1653393088.jpg">
+<meta property="og:image" content="http://example.com/images/20220524195507.png">
+<meta property="og:image" content="http://example.com/images/1653632864.jpg">
+<meta property="og:image" content="http://example.com/images/Dingtalk_20220527150319.jpg">
+<meta property="og:image" content="http://example.com/images/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20220527153819.png">
+<meta property="og:image" content="http://example.com/images/hbase/20220608180802.jpg">
+<meta property="article:published_time" content="2022-06-15T08:27:35.107Z">
+<meta property="article:modified_time" content="2022-06-17T08:27:35.107Z">
+<meta property="article:author" content="乡间小鹿">
+<meta property="article:tag" content="hbase">
+<meta property="article:tag" content="性能调优">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/images/1653393088.jpg">
+
+
+<link rel="canonical" href="http://example.com/2022/06/15/HBase%E5%AE%B9%E7%81%BE%E4%B9%8BClusterReplication%E6%9C%BA%E5%88%B6/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://example.com/2022/06/15/HBase%E5%AE%B9%E7%81%BE%E4%B9%8BClusterReplication%E6%9C%BA%E5%88%B6/","path":"2022/06/15/HBase容灾之ClusterReplication机制/","title":"HBase容灾之ClusterReplication机制"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>HBase容灾之ClusterReplication机制 | 大数据架构之道</title>
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">大数据架构之道</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Replication%E4%BB%8B%E7%BB%8D"><span class="nav-number">1.</span> <span class="nav-text">Replication介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BC%80%E5%90%AFReplication%E6%B5%81%E7%A8%8B"><span class="nav-number">1.1.</span> <span class="nav-text">开启Replication流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Replication%E5%8E%9F%E7%90%86"><span class="nav-number">1.2.</span> <span class="nav-text">Replication原理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AECluster-Replication"><span class="nav-number">1.3.</span> <span class="nav-text">配置Cluster Replication</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%93%8D%E4%BD%9C%E6%B5%81%E7%A8%8B"><span class="nav-number">1.3.1.</span> <span class="nav-text">操作流程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E5%91%BD%E4%BB%A4%E4%BB%8B%E7%BB%8D"><span class="nav-number">1.3.2.</span> <span class="nav-text">核心命令介绍</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%B2%E8%A1%8C%E5%A4%8D%E5%88%B6"><span class="nav-number">1.4.</span> <span class="nav-text">串行复制</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E4%B8%B2%E8%A1%8C%E5%A4%8D%E5%88%B6"><span class="nav-number">1.4.1.</span> <span class="nav-text">为什么需要串行复制</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%B2%E8%A1%8C%E5%A4%8D%E5%88%B6%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86"><span class="nav-number">1.4.2.</span> <span class="nav-text">串行复制的工作原理</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%90%8C%E6%AD%A5%E5%A4%8D%E5%88%B6"><span class="nav-number">1.5.</span> <span class="nav-text">同步复制</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF"><span class="nav-number">1.5.1.</span> <span class="nav-text">设计思路</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BC%80%E5%90%AF%E5%90%8C%E6%AD%A5%E5%A4%8D%E5%88%B6%E7%9A%84%E6%93%8D%E4%BD%9C%E6%B5%81%E7%A8%8B"><span class="nav-number">1.5.2.</span> <span class="nav-text">开启同步复制的操作流程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%A4%87%E9%9B%86%E7%BE%A4%E5%B4%A9%E6%BA%83%E6%97%B6%E5%A6%82%E4%BD%95%E5%A4%84%E7%90%86"><span class="nav-number">1.5.3.</span> <span class="nav-text">备集群崩溃时如何处理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%BB%E9%9B%86%E7%BE%A4%E5%AE%95%E6%9C%BA%E5%90%8E%E5%A6%82%E4%BD%95%E5%A4%84%E7%90%86"><span class="nav-number">1.5.4.</span> <span class="nav-text">主集群宕机后如何处理</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="乡间小鹿"
+      src="/images/head.jpg">
+  <p class="site-author-name" itemprop="name">乡间小鹿</p>
+  <div class="site-description" itemprop="description">每一个不曾起舞的日子都是对生命的辜负</div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/06/15/HBase%E5%AE%B9%E7%81%BE%E4%B9%8BClusterReplication%E6%9C%BA%E5%88%B6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/head.jpg">
+      <meta itemprop="name" content="乡间小鹿">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="大数据架构之道">
+      <meta itemprop="description" content="每一个不曾起舞的日子都是对生命的辜负">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="HBase容灾之ClusterReplication机制 | 大数据架构之道">
+      <meta itemprop="description" content="HBase提供了一种集群复制机制。它通过传播WAL文件来保证多集群之间状态互相同步。一般情况下，这种ClusterReplication机制用于：">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          HBase容灾之ClusterReplication机制
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-06-15 16:27:35" itemprop="dateCreated datePublished" datetime="2022-06-15T16:27:35+08:00">2022-06-15</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2022-06-17 16:27:35" itemprop="dateModified" datetime="2022-06-17T16:27:35+08:00">2022-06-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/HBase%E8%B0%83%E4%BC%98/" itemprop="url" rel="index"><span itemprop="name">HBase调优</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+            <div class="post-description">HBase提供了一种集群复制机制。它通过传播WAL文件来保证多集群之间状态互相同步。一般情况下，这种ClusterReplication机制用于：</div>
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p>HBase提供了一种集群复制机制。它通过传播WAL文件来保证多集群之间状态互相同步。<br>一般情况下，这种ClusterReplication机制用于：</p>
+<ol>
+<li>数据备份和灾难恢复</li>
+<li>离线数据分析</li>
+</ol>
+<p>ClusterReplication是在列簇的粒度上启用。也就是说，如果一个表中存在多个列簇，可以只同步其中一个列簇。<br>在启动Replication之前，需要在目标集群上创建好对应的表和列簇。</p>
+<p>默认情况下，集群间复制是异步的。当数据进入A集群后，被写入WAL文件。A集群后台会运行一个线程，将WAL发送到B集群。因为是异步复制，因此，它不能保证数据完全一致。有可能会存在数据数据丢失或顺序不一致情况。为了解决这个问题，HBase在2.1版本提供了同步复制功能。</p>
+<p>HBase中Replication和WAL Compression一起使用，会存在兼容性问题。因此，如果需要使用Replication的话，需要关闭WAL Compression。key：<code>hbase.regionserver.wal.enablecompression</code></p>
+<h2 id="Replication介绍"><a href="#Replication介绍" class="headerlink" title="Replication介绍"></a>Replication介绍</h2><p>集群之间的复制使用的是：source-push方式。即：主集群主动推送给备集群。</p>
+<h3 id="开启Replication流程"><a href="#开启Replication流程" class="headerlink" title="开启Replication流程"></a>开启Replication流程</h3><p>1 将创建Peer的请求发送到Master。</p>
+<blockquote>
+<p>peer代表集群间的一种复制关系</p>
+</blockquote>
+<p>2 当Master收到创建Peer的请求时，会在zk上为该Peer创建相关的znode，保证元数据信息不会丢失</p>
+<p>3 Master创建完Peer的元数据node后，向每一个RegionServer发送创建Peer的请求，保证每个RegionServer都创建Peer。</p>
+<p>4 当每个RegionServer创建完成之后，Master返回创建结果给客户端。</p>
+<p><img src="/../images/1653393088.jpg"></p>
+<h3 id="Replication原理"><a href="#Replication原理" class="headerlink" title="Replication原理"></a>Replication原理</h3><p>创建完Peer之后，真正负责数据同步的是RegionServer的ReplicationSource线程。数据推送流程如下：</p>
+<p><img src="/../images/20220524195507.png"></p>
+<p>1 创建Peer时，每个RegionServer会创建一个ReplicationSource线程（线程名：replicationSource_10，10表示PeerId）。ReplicationSource会把当前正在写入的HLog都保存在复制队列中（逻辑保存），然后在RegionServer上注册一个Listener，用来监听HLog Roll操作。如果RegionServer做了HLog Roll操作，那么ReplicationSource收到这个操作后，会把这个HLog分到对应的walGroup-Queue里面，同时把HLog文件名持久化到zk上，这样重启后，还是可以继续复制未完成的HLog。</p>
+<p>2 每个WalGroup-Queue后端都有一个ReplicationSourceWALReader的线程，这个线程不断的从Queue去除一个Hlog，然后把HLog中的Entry逐个读出来后，放到一个名为entryBatchQueue的队列中。</p>
+<p>3 entryBatchQueue队列后端有一个名为ReplicationSourceShipper的线程，不断从Queue中取出LogEntry，交给Peer的ReplicationEndpoint，ReplicationEndpoint把这些Entry打包成一个replicateWALEntry操作，通过RPC发送到Peer集群的某个RegionServer上，对应的Peer集群的RegionServer把replicateWALEntry解析成若干个Batch操作，并调用batch接口执行。待RPC调用成功之后，ReplicationSourceShipper会更新最近一次成功复制的Hlog Position到ZooKeeper，以便RegionServer重启后，下次能从最新的position开始复制。</p>
+<h3 id="配置Cluster-Replication"><a href="#配置Cluster-Replication" class="headerlink" title="配置Cluster Replication"></a>配置Cluster Replication</h3><h4 id="操作流程"><a href="#操作流程" class="headerlink" title="操作流程"></a>操作流程</h4><p>1 搭建备份集群，在备份集群上创建与主集群相同的表</p>
+<p>2 主集群和备集群可以相互访问</p>
+<p>3 登录主集群，进入hbase shell，执行add_peer命令</p>
+<p>4 执行完add_peer后，再执行enable_table_replication</p>
+<p>5 检查是否开启集群间数据同步，通过日志进行检查。关键日志：Log.info(“Replicating “ + clusterId + “ -&gt; “ + peerClusterId);</p>
+<h4 id="核心命令介绍"><a href="#核心命令介绍" class="headerlink" title="核心命令介绍"></a>核心命令介绍</h4><p><strong>1. add_peer <ID> <CLUSTER_KEY> [STATE] [NAMESPACES] [TABLE_CFS] [SERIAL]</strong></p>
+<p>add_peer：为两个集群之间添加复制关系</p>
+<p>ID：一个唯一的字符串，用来标记这种复制关系。因为集群间的复制粒度在列簇上，因此，两个集群之间可以添加多个复制关系。ID就是代表每个复制关系。</p>
+<p>CLUSTER_KEY：目标集群的信息。由这种结构组成：<code>hbase.zookeeper.quorum:hbase.zookeeper.property.clientPort:zookeeper.znode.parent</code></p>
+<p>STATE：复制链路的状态。可选值：ENABLED&#x2F;DISABLED，默认是ENABLED。</p>
+<p>NAMESPACES：将复制哪个命名空间下的表。</p>
+<p>TABLE_CFS：标记复制哪些表和表列簇到备集群。</p>
+<p>SERIAL：串行标记，用来标识复制到备集群是否用串行方式复制。默认false。</p>
+<p>例如：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">hbase&gt; </span><span class="language-bash">add_peer <span class="string">&#x27;1&#x27;</span>, CLUSTER_KEY=&gt; <span class="string">&quot;zk1,zk2,zk3:2181:/hbase-backup&quot;</span>, STATE=&gt; <span class="string">&quot;DISABLED&quot;</span>, NAMESPACES =&gt; [<span class="string">&quot;ns1&quot;</span>, <span class="string">&quot;ns2&quot;</span>], TABLE_CFS =&gt; &#123; <span class="string">&quot;ns3:table1&quot;</span> =&gt; [], <span class="string">&quot;ns3:table2&quot;</span> =&gt; [<span class="string">&quot;cf1&quot;</span>] &#125;, SERIAL=&gt; <span class="literal">true</span></span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>当用户想自定义复制策略，可以使用ENDPOINT_CLASSNAME。它有两个可选参数：DATA和CONFIG。</p>
+<p>例如：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">hbase&gt; </span><span class="language-bash">add_peer <span class="string">&#x27;11&#x27;</span>, ENDPOINT_CLASSNAME =&gt; <span class="string">&#x27;org.apache.hadoop.hbase.MyReplicationEndpoint&#x27;</span>,</span></span><br><span class="line">    DATA =&gt; &#123; &quot;key1&quot; =&gt; 1 &#125;, CONFIG =&gt; &#123; &quot;config1&quot; =&gt; &quot;value1&quot;, &quot;config2&quot; =&gt; &quot;value2&quot; &#125;,</span><br><span class="line">    TABLE_CFS =&gt; &#123; &quot;table1&quot; =&gt; [], &quot;ns2:table2&quot; =&gt; [&quot;cf1&quot;], &quot;ns3:table3&quot; =&gt; [&quot;cf1&quot;, &quot;cf2&quot;] &#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>2. list_peers</strong></p>
+<p>列出当前集群中所有的replication关系</p>
+<p><strong>3. enable_peer <ID></strong></p>
+<p>开启某个replication</p>
+<p><strong>4. disable_peer <ID></strong></p>
+<p>禁用replication关系，主集群将不再往备集群发送数据，但仍会保留所有的WAL，一旦开启后，则会把保留的WAL发到备集群。</p>
+<p><strong>5. remove_peer <ID></strong></p>
+<p>删除复制关系，主集群不再给备发送复制。</p>
+<p><strong>6. enable_table_replication <TABLE_NAME></strong></p>
+<p><strong>7. disable_table_replication <TABLE_NAME></strong></p>
+<p>启用和禁用某个表的复制</p>
+<h3 id="串行复制"><a href="#串行复制" class="headerlink" title="串行复制"></a>串行复制</h3><p>串行复制的目的是按数据到达的顺序从源集群复制到目标集群。</p>
+<h4 id="为什么需要串行复制"><a href="#为什么需要串行复制" class="headerlink" title="为什么需要串行复制"></a>为什么需要串行复制</h4><p>正常情况下，异步复制的方式，是通过WAL的创建时间来顺序读取，然后将数据复制到备集群。但是，当主集群发生region-move，如果存在未推送完成的hlog，hbase会将该hlog文件移动到其它RS上，新的RS会新起一个Replication线程进行复制。由于hlog是追加的，因此，此时会有两个RS并行向备集群复制数据，很容易造成数据不一致。</p>
+<p><img src="/../images/1653632864.jpg"></p>
+<p>这种并行操作，会导致：<strong>主集群与备集群的数据不一致</strong></p>
+<p><img src="/../images/Dingtalk_20220527150319.jpg"></p>
+<p>用户的写入顺序为：t1，t2，t5。用户在写到t5时，还没有进行集群复制（因为是异步的，所以有延迟）。</p>
+<p>当用户在写完t2后，发生了region-move，此时，t1，t2的数据是在RS1上，t5的数据在RS2上。</p>
+<p>那么，此时两个RS会同时往备集群进行复制数据。最终备集群接收到的可能是：</p>
+<p>RS1–&gt; t1</p>
+<p>RS2–&gt; t5</p>
+<p>RS1–&gt; t2</p>
+<p>就会导致主集群和备集群数据不一致。</p>
+<h4 id="串行复制的工作原理"><a href="#串行复制的工作原理" class="headerlink" title="串行复制的工作原理"></a>串行复制的工作原理</h4><p>并行复制的问题原因是：Region从一个RegionServer移动到另一个RegionServer的过程中，Region的数据会分散在两个RegionServer的HLog上，而两个RegionServer完全独立的推送各自的HLog，从而导致同一个Region的数据并行的写入Peer集群。</p>
+<p>知道了问题根因，比较简单的解决思路是：把Region的数据按照Region Move发生的时间点t0分成两段。小于t0时间的数据都在RS0的HLog上，大于t0时间的数据都在RS1的HLog上。让RS0先推小于t0的数据，等RS0把小于t0的数据全部推送到备集群之后，RS1再开始推送大于t0的数据。</p>
+<p>hbase的同步策略如下图：</p>
+<p><img src="/../images/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20220527153819.png"></p>
+<p>几个概念：</p>
+<ul>
+<li>Barrier：和上述思路中的t0概念类似。具体是指，每一个Region重新Assign到新的RegionServer时，新RegionServer打开Region前能读到最大SequenceId（此Region在HLog中最近一次写入数据分配的Id），因此，每Open一次Region，就会产生一个新的Barrier。</li>
+<li>LastPushedSequenceId：表示该Region最近一次成功推送到备集群的HLog的SequenceId。每成功推送一次，都会更新此值。</li>
+<li>PendingSequenceId：表示该Region当前读到的HLog的SequenceId。</li>
+</ul>
+<h3 id="同步复制"><a href="#同步复制" class="headerlink" title="同步复制"></a>同步复制</h3><p>一般情况下，默认HBase的复制方式是异步复制。即HBase客户端写入数据到主集群之后就返回了，然后主集群再异步的把数据依次推送到备份集群。这样存在的一个问题是，若主集群因为bug或其他原因意外退出无法提供服务时，备份集群的数据是比主集群少的。这时，HBase的可用性将受到极大影响。</p>
+<h4 id="设计思路"><a href="#设计思路" class="headerlink" title="设计思路"></a>设计思路</h4><p>同步复制的核心思想是，RegionServer在收到写入请求时，不仅会在主集群上写一份HLog日志，还会同时在备份集群上写一份RemoteWAL日志，只有等主集群上的HLog和备集群上的RemoteWAL都写入成功且MemStore写入成功后，才返回给客户端。</p>
+<p>除此之外，主集群和备集群之间还会开启异步复制链路，若主集群上的某个HLog通过异步复制完全推送到备份集群，那么这个HLog在备集群上对应的RemoteWAL则被清理，否则不可清理。</p>
+<p><img src="/../images/hbase/20220608180802.jpg"></p>
+<p>因此，主集群的每一次写入，备份集群斗殴不会丢失这次写入的数据，一旦主集群发生故障，只需要回放RemoteWAL日志到备集群，备集群马上就可以为线上提供服务。</p>
+<h4 id="开启同步复制的操作流程"><a href="#开启同步复制的操作流程" class="headerlink" title="开启同步复制的操作流程"></a>开启同步复制的操作流程</h4><p><strong>第一步：添加两个同步Replication</strong></p>
+<p>在主集群上添加peer：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">hbase&gt; </span><span class="language-bash">add_peer <span class="string">&#x27;1&#x27;</span>, CLUSTER_KEY =&gt; <span class="string">&#x27;zk1,zk2,zk3:2181:/test-backup&#x27;</span>, REMOTE_WAL_DIR=&gt;<span class="string">&#x27;hdfs://namespace/hbase/test-backup/remoteWALs&#x27;</span>,TABLE_CFS=&gt;&#123;<span class="string">&quot;test&quot;</span>=&gt;[]&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>在备集群上添加peer：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">hbase&gt; </span><span class="language-bash">add_peer <span class="string">&#x27;1&#x27;</span>, CLUSTER_KEY=&gt;<span class="string">&#x27;zk1,zk2,zk3:2181:/test&#x27;</span>,REMOTE_WAL_DIR=&gt;<span class="string">&#x27;hdfs://namespace/hbase/hbase/remoteWALs&#x27;</span>,NAMESPACES=&gt;&#123;<span class="string">&quot;test&quot;</span>=&gt;[]&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>同步复制需要在主机群和备集群具有相同的peerId，peer只支持table之间的同步。</p>
+<p><strong>第二步：将备集群状态设置为STANDBY状态</strong></p>
+<p>在备集群上操作：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">hbase&gt; </span><span class="language-bash">transit_peer_sync_replication_state <span class="string">&#x27;1&#x27;</span>, <span class="string">&#x27;STANDBY&#x27;</span></span></span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>第三步：将主集群设置为ACTIVE状态</strong></p>
+<p>在主集群上操作：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">hbase&gt; </span><span class="language-bash">transit_peer_sync_replication_state <span class="string">&#x27;1&#x27;</span>, <span class="string">&#x27;ACTIVE&#x27;</span></span></span><br></pre></td></tr></table></figure>
+
+<p>经过这三步操作，同步复制已经设置成功。客户端只能从主集群去读写数据，如果客户端往备集群去读写，则会被拒绝。</p>
+<h4 id="备集群崩溃时如何处理"><a href="#备集群崩溃时如何处理" class="headerlink" title="备集群崩溃时如何处理"></a>备集群崩溃时如何处理</h4><p>如果备集群崩溃，它将无法为主集群写入remoteWAL，所以我们需要将主集群的状态转换到DOWNGRADE_ACTIVE状态。这意味着，主集群不会再写任何remoteWAL，但是会正常的复制队列仍然可以正常工作，他将新写入的WAL排队，直到备集群恢复。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">hbase&gt; </span><span class="language-bash">transit_peer_sync_replication_state <span class="string">&#x27;1&#x27;</span>, <span class="string">&#x27;DOWNGRADE_ACTIVE&#x27;</span></span></span><br></pre></td></tr></table></figure>
+
+<p>当备集群恢复后，将主集群状态设置为ACTIVE。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">hbase&gt; </span><span class="language-bash">hbase&gt; transit_peer_sync_replication_state <span class="string">&#x27;1&#x27;</span>, <span class="string">&#x27;ACTIVE&#x27;</span></span></span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="主集群宕机后如何处理"><a href="#主集群宕机后如何处理" class="headerlink" title="主集群宕机后如何处理"></a>主集群宕机后如何处理</h4><p>如果主集群宕机，需要将备集群的状态设置为DOWNGRADE_ACTIVE，同时将流量切到备集群，让备集群变为主集群。</p>
+<p>当原来的主集群恢复后，将它设置为STANDBY状态即可。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/hbase/" rel="tag"><i class="fa fa-tag"></i> hbase</a>
+              <a href="/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/" rel="tag"><i class="fa fa-tag"></i> 性能调优</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/06/09/Redis%E4%B8%ADBigKey%E5%AF%B9%E8%AF%BB%E5%86%99%E6%80%A7%E8%83%BD%E7%9A%84%E5%BD%B1%E5%93%8D/" rel="prev" title="Redis中BigKey对读写性能的影响">
+                  <i class="fa fa-chevron-left"></i> Redis中BigKey对读写性能的影响
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">乡间小鹿</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>
