@@ -146,18 +146,18 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-count">28</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
           <a href="/categories/">
-        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-count">8</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-count">11</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -254,32 +254,32 @@
 <p>对读写缓存进行了分离，使用了堆外内存，读缓存不再往内存中写。整体gc有了一定的提升，但还是会有整点尖峰情况。</p>
 <p>查看HBase的读写请求，基本趋于稳定，所以整点的尖峰，猜测和调整HBase参数基本无关。</p>
 <p>下面是读写分离之后，datanode-7上gc的情况。</p>
-<p><img src="/../images/1-f198c9659bed40159149627984847db7.png" alt="1.png"></p>
+<p><img src="/../../images/1-f198c9659bed40159149627984847db7.png" alt="1.png"></p>
 <p>线上OpenTsdb get&#x2F;delete 请求情况</p>
-<p><img src="/../images/2-a27dd438450f4d76ada867912401f2e2.png" alt="2.png"></p>
-<p><img src="/../images/3-9188067aa7f0453484dcd6c06c5fbda5.png" alt="3.png"></p>
+<p><img src="/../../images/2-a27dd438450f4d76ada867912401f2e2.png" alt="2.png"></p>
+<p><img src="/../../images/3-9188067aa7f0453484dcd6c06c5fbda5.png" alt="3.png"></p>
 <p>可以看到，它们都是整点的时候有一个小尖峰。</p>
 <p>OpenTsdb整点在做compaction，会发出大量的get和delete请求。在整点时对HBase会有一定的冲击。</p>
 <p>OpenTsdb官方提供了另一种写方式：append方式。</p>
 <p>该方式的意图是：请求进来之后，不再创建新的列，而是追加在一个列上。这样也就不会再去做compaction操作。</p>
-<h1 id="Release环境调整后的现象"><a href="#Release环境调整后的现象" class="headerlink" title="Release环境调整后的现象"></a>Release环境调整后的现象</h1><p><img src="/../images/4-caf35a0c685544d68f9f4cce995865f2.png" alt="4.png"></p>
+<h1 id="Release环境调整后的现象"><a href="#Release环境调整后的现象" class="headerlink" title="Release环境调整后的现象"></a>Release环境调整后的现象</h1><p><img src="/../../images/4-caf35a0c685544d68f9f4cce995865f2.png" alt="4.png"></p>
 <p>线下HBase GC调整前后对比</p>
 <p>调整前：10号~11号</p>
-<p><img src="/../images/5-98f52e5323354e9394775b2cbbd62ae3.png" alt="5.png"></p>
+<p><img src="/../../images/5-98f52e5323354e9394775b2cbbd62ae3.png" alt="5.png"></p>
 <p>调整后：11号下午6点到12号</p>
-<p><img src="/../images/6-8115ae8444a04fb4abefb5a97fa5cd0a.png" alt="6.png"></p>
+<p><img src="/../../images/6-8115ae8444a04fb4abefb5a97fa5cd0a.png" alt="6.png"></p>
 <p>gc明显平稳了很多，但是也有一些小的波动，原因是：HBase被多个环境引用，比如pre-release环境。pre-release环境也会发出一些compaction。</p>
 <p>新老数据查询不受影响。</p>
-<p><img src="/../images/7-187e9c55684f42be8210bbcbb0c26654.png" alt="7.png"></p>
-<p><img src="/../images/8-d68a5532a5ce4ada8a0d98fd0702222c.png" alt="8.png"></p>
+<p><img src="/../../images/7-187e9c55684f42be8210bbcbb0c26654.png" alt="7.png"></p>
+<p><img src="/../../images/8-d68a5532a5ce4ada8a0d98fd0702222c.png" alt="8.png"></p>
 <p>参考文章：<a target="_blank" rel="noopener" href="https://www.cnblogs.com/bigdatasafe/p/10524023.html">https://www.cnblogs.com/bigdatasafe/p/10524023.html</a></p>
-<h1 id="关闭Compaction和append"><a href="#关闭Compaction和append" class="headerlink" title="关闭Compaction和append"></a>关闭Compaction和append</h1><p><img src="/../images/9-9aa9bebd7a15472f830717025f72134d.png" alt="9.png"></p>
+<h1 id="关闭Compaction和append"><a href="#关闭Compaction和append" class="headerlink" title="关闭Compaction和append"></a>关闭Compaction和append</h1><p><img src="/../../images/9-9aa9bebd7a15472f830717025f72134d.png" alt="9.png"></p>
 <p>存储在HBase中，底层的StoreFile是多行，查询时，会增加IO，并且，多行存储，rowkey会重复，增加磁盘空间。</p>
 <p>开启append模式后，查询情况：</p>
-<p><img src="/../images/10-03f52e8de113407e89642c4f9f0b07f4.png" alt="10.png"></p>
-<h1 id="减缓压缩速度"><a href="#减缓压缩速度" class="headerlink" title="减缓压缩速度"></a>减缓压缩速度</h1><p><img src="/../images/11-625af44575b44b24b6f8238e820e3dcc.png" alt="11.png"></p>
-<p><img src="/../images/12-b19570af8c3241f19bb6fc9946e9d96f.png" alt="12.png"></p>
-<p><img src="/../images/13-4c99b7b42a744bad9eb38c199b8acb6d.png" alt="13.png"></p>
+<p><img src="/../../images/10-03f52e8de113407e89642c4f9f0b07f4.png" alt="10.png"></p>
+<h1 id="减缓压缩速度"><a href="#减缓压缩速度" class="headerlink" title="减缓压缩速度"></a>减缓压缩速度</h1><p><img src="/../../images/11-625af44575b44b24b6f8238e820e3dcc.png" alt="11.png"></p>
+<p><img src="/../../images/12-b19570af8c3241f19bb6fc9946e9d96f.png" alt="12.png"></p>
+<p><img src="/../../images/13-4c99b7b42a744bad9eb38c199b8acb6d.png" alt="13.png"></p>
 
     </div>
 

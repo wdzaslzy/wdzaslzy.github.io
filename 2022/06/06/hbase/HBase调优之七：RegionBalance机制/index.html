@@ -152,18 +152,18 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-count">28</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
           <a href="/categories/">
-        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-count">8</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-count">11</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -259,8 +259,8 @@
 <p>其中，bucket个数是固定的，取值范围：[1, 512]。主要用来将数据均匀的分散在不同的Region。</p>
 <p>但是随着时间的推移，Region发生split后，旧时间段的Region，不会再有写入。即：它只提供查询，不提供实时写入。而我们的业务场景是写多读少场景。</p>
 <p>这就导致，我们的RegionServer的Region虽然分配很均匀，但是写入差距却很大。</p>
-<p><img src="/../images/Dingtalk_20220530150011.jpg"></p>
-<p><img src="/../images/Dingtalk_20220530150107.jpg"></p>
+<p><img src="/../../images/Dingtalk_20220530150011.jpg"></p>
+<p><img src="/../../images/Dingtalk_20220530150107.jpg"></p>
 <h2 id="Balancer源码分析"><a href="#Balancer源码分析" class="headerlink" title="Balancer源码分析"></a>Balancer源码分析</h2><h3 id="balancer触发时机"><a href="#balancer触发时机" class="headerlink" title="balancer触发时机"></a>balancer触发时机</h3><p><strong>一、手动触发</strong></p>
 <p>在hbase shell中执行</p>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">hbase&gt; </span><span class="language-bash">balancer</span></span><br></pre></td></tr></table></figure>
@@ -277,14 +277,12 @@
 
 
 
-
-
 <h3 id="执行过程"><a href="#执行过程" class="headerlink" title="执行过程"></a>执行过程</h3><p>触发balance后，实际执行入口是HMaster的balance方法。有无参和是否强制执行。默认不强制执行。强制执行是说，当前如果存在RIT(正在发生split)时，也能继续执行。</p>
 <h4 id="初始化"><a href="#初始化" class="headerlink" title="初始化"></a><strong>初始化</strong></h4><p>HMaster启动时，会调用initializeZKBasedSystemTrackers()方法初始化balancer。</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">initializeZKBasedSystemTrackers</span><span class="params">()</span></span><br><span class="line">    <span class="keyword">throws</span> IOException, InterruptedException, KeeperException, ReplicationException &#123;</span><br><span class="line"> 	<span class="comment">// balancer相关代码，省略了其它逻辑</span></span><br><span class="line">    <span class="comment">//初始化balancer</span></span><br><span class="line">    <span class="built_in">this</span>.balancer = LoadBalancerFactory.getLoadBalancer(conf);</span><br><span class="line">    <span class="comment">//Factory中，使用的default是StochasticLoadBalancer</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>这里面的balancer是：LoadBalancer 类型。目前，HBase提供了4种balance方式。依赖关系如下：</p>
-<p><img src="/../images/hbase/balance%E7%B1%BB%E5%9B%BE.jpg"></p>
+<p><img src="/../../images/hbase/balance%E7%B1%BB%E5%9B%BE.jpg"></p>
 <ul>
 <li><p>RSGroupBasedLoadBalancer</p>
 <blockquote>
@@ -337,12 +335,12 @@
 
 
 <p><strong>几个重要的CostFunction</strong></p>
-<p><img src="/../images/hbase/a3d7392a4e96ced252a0f425ed1ebb4a40e519ad.png"></p>
+<p><img src="/../../images/hbase/a3d7392a4e96ced252a0f425ed1ebb4a40e519ad.png"></p>
 <p>CostFunction是一个判断代价的函数，取值范围是0到1，值越小，说明越平衡。</p>
 <p>对于MoveCostFunction来说，初始状态就是最佳状态，因为不需要任何移动，而移动所有region则是最差状态。<br>而对于其它CostFunciton，则需要分别去考虑最差和最佳时的值具体是什么，比如对于RegionCountSkewCostFunction，最差状态是所有reigon都集中在单个regionserver上，而最佳状态是所有regionserver上的region数量都等于平均数。</p>
 <p>值得注意的是，对于ServerLocalityCostFunction及其它数据本地化相关因子来说，最佳状态并非是完全本地化，而是基于当前hdfs的block分布状态，所能达到的最大本地化值，</p>
 <p>收益的判断需要对doAction之前和之后的totalCost进行比较，而totalCost是对各个因子的cost加权求和得到的，如下所示，实线框为初始状态时的cost，模拟执行了action之后得到了虚线框代表的cost，有的增加有的减小，最后综合下来的增减情况就代表了执行该action是否有价值。</p>
-<p><img src="/../images/hbase/07d2b94044f25913dd473ed0abdc49f9fda67da0.png" alt="balancer_"></p>
+<p><img src="/../../images/hbase/07d2b94044f25913dd473ed0abdc49f9fda67da0.png" alt="balancer_"></p>
 <p>CandidateGenerator生成action的次数有一定限制，称为maxStep，该值与集群配置以及集群规模相关。</p>
 <p>核心关注的几个Region：</p>
 <p>RegionCountSkewCostFunction、MoveCostFunction、ServerLocalityCostFunction、RackLocalityCostFunction、TableSkewCostFunction、ReadRequestCostFunction、WriteRequestCostFunction、MemStoreSizeCostFunction、StoreFileCostFunction</p>
@@ -356,14 +354,14 @@
 
 <p>hbase.master.balancer.stochastic.regionCountCost。regionCountCost权重，默认值为500；</p>
 <p>用线下环境做测试：</p>
-<p><img src="/../images/hbase/lQLPJxZc3z7s6bHM2c0CGLBFpW5qBdzkrQKZOlXxANYA_536_217.png"></p>
+<p><img src="/../../images/hbase/lQLPJxZc3z7s6bHM2c0CGLBFpW5qBdzkrQKZOlXxANYA_536_217.png"></p>
 <p>total：2790  count：3  mean：930</p>
 <p>max &#x3D; (3-1) * 930 + 2790 - 930 &#x3D; 3720</p>
 <p>min &#x3D; 1</p>
 <p>当前cost：（1395 -930） * 2 + 930 &#x3D; 1860</p>
 <p>该CostFunction返回的cost：1860 &#x2F; 3720 &#x3D; 0.5</p>
 <p>重启停掉的Region后：</p>
-<p><img src="/../images/hbase/1654081128(1).jpg"></p>
+<p><img src="/../../images/hbase/1654081128(1).jpg"></p>
 <p><strong>TableSkewCostFunction</strong></p>
 <p>单个表在某个RS上最大的Region数。</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">double</span> <span class="title function_">cost</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">double</span> <span class="variable">max</span> <span class="operator">=</span> cluster.numRegions;	<span class="comment">// 总Region数</span></span><br><span class="line">    <span class="type">double</span> <span class="variable">min</span> <span class="operator">=</span> ((<span class="type">double</span>) cluster.numRegions) / cluster.numServers;	<span class="comment">//每个Region的平均数</span></span><br><span class="line">    <span class="type">double</span> <span class="variable">value</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 各table在单个RS中的最大region数</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; cluster.numMaxRegionsPerTable.length; i++) &#123;</span><br><span class="line">        value += cluster.numMaxRegionsPerTable[i];</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> scale(min, max, value);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
@@ -430,13 +428,13 @@
 <td></td>
 </tr>
 </tbody></table>
-<h4 id="生成执行计划"><a href="#生成执行计划" class="headerlink" title="生成执行计划"></a>生成执行计划</h4><p><img src="/../images/hbase/a30b0ece6a41efbfece74466cc2e48cefdfc9bf3.png"></p>
+<h4 id="生成执行计划"><a href="#生成执行计划" class="headerlink" title="生成执行计划"></a>生成执行计划</h4><p><img src="/../../images/hbase/a30b0ece6a41efbfece74466cc2e48cefdfc9bf3.png"></p>
 <p>所谓的执行计划，就是一些action集合。action的类型有：AssignRegionAction、MoveRegionAction和SwapRegionsAction三种。</p>
 <p>而action由CandidateGenerator产生，核心代码如下：</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Cluster.Action <span class="title function_">nextAction</span><span class="params">(Cluster cluster)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> candidateGenerators.get(RANDOM.nextInt(candidateGenerators.size()))</span><br><span class="line">        .generate(cluster);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>其中，CandidateGenerator目前主要是以下几种：</p>
-<p><img src="/../images/hbase/CandidateGenerator.png"></p>
+<p><img src="/../../images/hbase/CandidateGenerator.png"></p>
 <p>而在StochasticLoadBalancer中，使用了以下四种：</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (<span class="built_in">this</span>.candidateGenerators == <span class="literal">null</span>) &#123;</span><br><span class="line">    candidateGenerators = Lists.newArrayList();</span><br><span class="line">    candidateGenerators.add(<span class="keyword">new</span> <span class="title class_">RandomCandidateGenerator</span>());</span><br><span class="line">    candidateGenerators.add(<span class="keyword">new</span> <span class="title class_">LoadCandidateGenerator</span>());</span><br><span class="line">    candidateGenerators.add(localityCandidateGenerator);</span><br><span class="line">    candidateGenerators.add(<span class="keyword">new</span> <span class="title class_">RegionReplicaRackCandidateGenerator</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
@@ -514,26 +512,26 @@
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hbase&gt; create <span class="string">&#x27;balance_test&#x27;</span>, <span class="string">&#x27;t&#x27;</span>, SPLITS_FILE=&gt;<span class="string">&#x27;/home/lizy/split&#x27;</span></span><br></pre></td></tr></table></figure>
 
 <p>第三步：更改hbase配置后重启</p>
-<p><img src="/../images/hbase/20220606145148.jpg"></p>
-<p><img src="/../images/hbase/20220606145303.jpg"></p>
+<p><img src="/../../images/hbase/20220606145148.jpg"></p>
+<p><img src="/../../images/hbase/20220606145303.jpg"></p>
 <p>第四步：找出某个RS下的所有Region进行写操作</p>
 <p>以bigdata-master-99为例：</p>
-<p><img src="/../images/hbase/20220606145715.jpg"></p>
+<p><img src="/../../images/hbase/20220606145715.jpg"></p>
 <p>第五步：写一段时间后，查看Balance日志及balance结果</p>
-<p><img src="/../images/hbase/20220606165150.jpg"></p>
-<p><img src="/../images/hbase/1654505979702.jpg"></p>
+<p><img src="/../../images/hbase/20220606165150.jpg"></p>
+<p><img src="/../../images/hbase/1654505979702.jpg"></p>
 <p>通过日志分析：执行了3次balance后，写平衡后，再没执行过balance。</p>
 <p>第六步：模拟补数据场景</p>
 <p>在步骤五的基础上，再增加一个写操作。只不过该写操作是按Region写的。每个Region写30s，换下一个Region。30个Region持续写15分钟，看整体效果。</p>
-<p><img src="/../images/hbase/20220607105453.jpg"> <img src="/../images/hbase/20220607105608.jpg"></p>
+<p><img src="/../../images/hbase/20220607105453.jpg"> <img src="/../../images/hbase/20220607105608.jpg"></p>
 <p>在进行补数据的过程中，发生了多次balance，补完以后，其中一个RS无写入，再balance之后才平衡。</p>
 <p>意味着，在进行补数据时，单纯的调整costFunction权重是不够的。</p>
 <p>第七步：将balance时间间隔设置为1小时，balance时用到的numRegionLoadsToRemember由15调整到60。目的：补数据、rollup等操作在短时间内是不平衡的，但是在小时级别下，基本是均匀的。除非补历史大范围全量数据（一个任务跑几天的）。</p>
-<p><img src="/../images/hbase/20220607110901.jpg"></p>
+<p><img src="/../../images/hbase/20220607110901.jpg"></p>
 <p>第八步：重启HBase，重复以上操作</p>
-<p><img src="/../images/hbase/20220607121036.jpg"></p>
+<p><img src="/../../images/hbase/20220607121036.jpg"></p>
 <p>搜索Balance日志，并没看到执行了balance。</p>
-<p><img src="/../images/hbase/20220607121226.jpg"></p>
+<p><img src="/../../images/hbase/20220607121226.jpg"></p>
 <p>参考文献：</p>
 <p><a target="_blank" rel="noopener" href="https://blog.csdn.net/ihaxiaolin/article/details/122984712">HBase balancer原理解析和一些优化方案</a></p>
 <p><a target="_blank" rel="noopener" href="https://blog.yiz96.com/hbase-src-4-region-balance/">HBase源码分析4—Region Balance</a></p>

@@ -36,7 +36,7 @@
 <meta property="og:image" content="http://example.com/images/spark/1654586226081.jpg">
 <meta property="og:image" content="http://example.com/images/spark/1654586259417.jpg">
 <meta property="article:published_time" content="2021-01-08T06:32:23.000Z">
-<meta property="article:modified_time" content="2022-06-07T07:18:17.878Z">
+<meta property="article:modified_time" content="2022-07-11T06:47:31.293Z">
 <meta property="article:author" content="乡间小鹿">
 <meta property="article:tag" content="spark">
 <meta property="article:tag" content="bigdata">
@@ -141,18 +141,18 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-count">28</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
           <a href="/categories/">
-        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-count">8</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-count">11</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -227,7 +227,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2022-06-07 15:18:17" itemprop="dateModified" datetime="2022-06-07T15:18:17+08:00">2022-06-07</time>
+      <time title="修改时间：2022-07-11 14:47:31" itemprop="dateModified" datetime="2022-07-11T14:47:31+08:00">2022-07-11</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -252,7 +252,7 @@
     <div class="post-body" itemprop="articleBody">
         <p>这是一个重点知识，如果你已经有了一定的基础知识，请务必细看本节。这将对你排查问题以及追踪代码执行进度时，起到很大的作用。</p>
 <h3 id="Spark环境监控"><a href="#Spark环境监控" class="headerlink" title="Spark环境监控"></a>Spark环境监控</h3><p>在大部分时间里，都需要监控spark应用的执行过程以排查出现的问题。下面是spark任务运行的一个图，从图中入手，可以得出一些监控方式。</p>
-<p><img src="/../images/spark/1654586009855.jpg"></p>
+<p><img src="/../../images/spark/1654586009855.jpg"></p>
 <h4 id="Spark-Applications-and-Jobs"><a href="#Spark-Applications-and-Jobs" class="headerlink" title="Spark Applications and Jobs"></a>Spark Applications and Jobs</h4><p>如果你想更好地了解应用程序如何在集群上执行，那么你第一个要看的就是SparkUI、Spark logs。这里有spark应用执行的详细信息，如果你还不会查看SparkUI和SparkLogs，别担心，下面我会详细来介绍。</p>
 <h4 id="JVM"><a href="#JVM" class="headerlink" title="JVM"></a>JVM</h4><p>spark中的executor process都运行在单个jvm中，因此，在了解了整体SparkUI后，可以监控单个JVM来查看某个executor的执行过程。如果你了解jvm内部结构，你可以使用用于追踪堆栈的jistack工具、用于创建堆转储的jmap等等工具来辅助你追踪jvm运行信息。</p>
 <h4 id="OS"><a href="#OS" class="headerlink" title="OS"></a>OS</h4><p>因为jvm是运行在操作系统上的，你可以监控操作系统的资源情况，来了解一些信息。比如某个executor操作比较缓慢时，你可以监控这个节点的cpu、io等信息，了解是否有充足的资源在使用。</p>
@@ -269,7 +269,7 @@
 </ol>
 <p>下面详细的介绍一下如何来监控它们。</p>
 <h3 id="Spark-UI"><a href="#Spark-UI" class="headerlink" title="Spark UI"></a>Spark UI</h3><p>Spark UI是最直观的监控方式，也是最常用的。下面是spark ui提供的几个选项页面。</p>
-<p><img src="/../images/spark/1654586062252.jpg"></p>
+<p><img src="/../../images/spark/1654586062252.jpg"></p>
 <ul>
 <li><p>Jobs</p>
 <blockquote>
@@ -301,14 +301,14 @@
 <figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">sparkSession.read.option(<span class="string">&quot;header&quot;</span>, <span class="string">&quot;true&quot;</span>)</span><br><span class="line">	.csv(<span class="string">&quot;/xx.csv&quot;</span>)</span><br><span class="line">	.repartition(<span class="number">2</span>)</span><br><span class="line">	.selectExpr(<span class="string">&quot;instr(Description, &#x27;GLASS&#x27;) &gt;= 1 as is_glass&quot;</span>)</span><br><span class="line">	.groupBy(<span class="string">&quot;is_glass&quot;</span>)</span><br><span class="line">	.count()</span><br><span class="line">	.collect()</span><br></pre></td></tr></table></figure>
 
 <p>这个代码使用了SQL查询，我们可以到SQL页下来查看它的具体运行信息，如下图：</p>
-<p><img src="/../images/spark/1654586096502.jpg"></p>
+<p><img src="/../../images/spark/1654586096502.jpg"></p>
 <p>第一个看到的是一个整体信息：</p>
 <p>Submitted Time: 2017&#x2F;04&#x2F;08 16:24:41</p>
 <p>Duration: 2 s</p>
 <p>Succeeded Jobs: 2</p>
 <p>它描述了：任务提交的时间、任务当前持续时间、成功的job数。</p>
 <p>图中每个蓝色框代表一个阶段，我们对每个阶段进行分析：</p>
-<h4 id="读csv文件并重分区"><a href="#读csv文件并重分区" class="headerlink" title="读csv文件并重分区"></a>读csv文件并重分区</h4><p><img src="/../images/spark/1654586130652.jpg"></p>
+<h4 id="读csv文件并重分区"><a href="#读csv文件并重分区" class="headerlink" title="读csv文件并重分区"></a>读csv文件并重分区</h4><p><img src="/../../images/spark/1654586130652.jpg"></p>
 <p>上边WholeStateCodegen的蓝色框表示对csv文件的一个完整扫描，扫描结果得出以下信息：</p>
 <ul>
 <li>一共花费4.7秒（最小422ms，中等614ms，最大626ms）</li>
@@ -319,19 +319,19 @@
 <ul>
 <li>交换数据一共23.8M</li>
 </ul>
-<h4 id="取数据并进行聚合"><a href="#取数据并进行聚合" class="headerlink" title="取数据并进行聚合"></a>取数据并进行聚合</h4><p><img src="/../images/spark/1654586165213.jpg"></p>
+<h4 id="取数据并进行聚合"><a href="#取数据并进行聚合" class="headerlink" title="取数据并进行聚合"></a>取数据并进行聚合</h4><p><img src="/../../images/spark/1654586165213.jpg"></p>
 <p>这个阶段对应的代码是：</p>
 <figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">.selectExpr(<span class="string">&quot;instr(Description,&#x27;GLASS&#x27;)&gt;=1asis_glass&quot;</span>)</span><br><span class="line">.groupBy(<span class="string">&quot;is_glass&quot;</span>)</span><br></pre></td></tr></table></figure>
 
 <p>从该阶段，我们可以看出，它的操作流程是：</p>
 <p>原始数据集 &#x3D;&gt; 选取符合条件的数据集 &#x3D;&gt;  分区内进行聚合 &#x3D;&gt; shuffer</p>
 <p>通过这个信息，我们可以发现，spark-sql的groupBy和spark-core的groupBy是不同的。spark-core中的groupBy是直接进行shuffer的，而spark-sql中的groupBy显然是做了优化，先在分区内进行聚合，再进行shuffer，其中的聚合方式是hash聚合。</p>
-<h4 id="最后阶段：统计阶段"><a href="#最后阶段：统计阶段" class="headerlink" title="最后阶段：统计阶段"></a>最后阶段：统计阶段</h4><p><img src="/../images/spark/1654586194902.jpg"></p>
+<h4 id="最后阶段：统计阶段"><a href="#最后阶段：统计阶段" class="headerlink" title="最后阶段：统计阶段"></a>最后阶段：统计阶段</h4><p><img src="/../../images/spark/1654586194902.jpg"></p>
 <p>最后这个阶段，是.count()函数的执行阶段。因为我们对is_glass做了分组，所以，这个count是统计每组的一个count。从DAG可以看到，最后输出3行，即表示有三种类型的is_glass。</p>
 <h4 id="spark-jobs"><a href="#spark-jobs" class="headerlink" title="spark jobs"></a>spark jobs</h4><p>了解了该程序的执行过程，我们再来一起看下整个应用的整体过程。</p>
-<p><img src="/../images/spark/1654586226081.jpg"></p>
+<p><img src="/../../images/spark/1654586226081.jpg"></p>
 <p>我们从Jobs选项可以看到，一共有3个stage，与我们从DAG中看到的一致。每个stage的持续时间、提交时间，每个job一共运行多少个task等等。每个阶段的task是不同的，第一个阶段read csv使用了8个分区，该方式和spark读任务有很大的关系，它会将一个文件根据行数和spark运行环境进行均分，让每个partition可以均匀的来读取，最终的计算结果是8，第二个stage，因为我们强制设置了分区数量，因此它具有2个分区，第三个阶段一共有200的task，因为默认的shuffer分区是200。</p>
-<h4 id="spark-stages"><a href="#spark-stages" class="headerlink" title="spark stages"></a>spark stages</h4><p><img src="/../images/spark/1654586259417.jpg"></p>
+<h4 id="spark-stages"><a href="#spark-stages" class="headerlink" title="spark stages"></a>spark stages</h4><p><img src="/../../images/spark/1654586259417.jpg"></p>
 <p>单击第一个stage，可以看到该stage的详细执行信息。顶部的Summary Metrics是整个stage的一个汇总，在看该图时，一般都看这部分值的分布情况。例如Duration，如果min和max差距很大，说明有一部分分区出现了数据倾斜的情况。此图中分布是比较均匀的。在该图的最下边Tasks中，是每个task的一个执行信息，如果数据出现了倾斜，可以从task中看到是哪部分数据。</p>
 <p>上面是spark ui中比较重要的几个选项，其他几个选项主要描述了spark应用环境的一些信息。</p>
 <h3 id="Spark-UI-History-Server"><a href="#Spark-UI-History-Server" class="headerlink" title="Spark UI History Server"></a>Spark UI History Server</h3><p>Spark UI只能在spark应用执行期间被看到，而如果程序出现意外，崩溃后，Spark UI是没有办法立即知道崩溃原因的。我们有两种方式来查看崩溃情况：</p>

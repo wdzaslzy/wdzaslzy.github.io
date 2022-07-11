@@ -142,18 +142,18 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-count">28</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
           <a href="/categories/">
-        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-count">8</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-count">11</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -271,9 +271,9 @@
 
 <h3 id="GC时间长导致RegionServer异常退出"><a href="#GC时间长导致RegionServer异常退出" class="headerlink" title="GC时间长导致RegionServer异常退出"></a>GC时间长导致RegionServer异常退出</h3><p>关于最近长时间gc导致RegionServer异常退出，主要原因是async hbase在发送大量的scanner，该scanner请求导致内存持续上升，而gc又无法回收。最终集群出现异常。</p>
 <p>HBase出现的日志：</p>
-<p><img src="/../images/1-5dd609e6aab44e2ba52f94f4153dbb14.png" alt="1.png"></p>
+<p><img src="/../../images/1-5dd609e6aab44e2ba52f94f4153dbb14.png" alt="1.png"></p>
 <p>出现这样的scanner请求的debug日志：</p>
-<p><img src="/../images/2-5f452c0fb9b44939899e4798be49b5d1.png" alt="2.png"></p>
+<p><img src="/../../images/2-5f452c0fb9b44939899e4798be49b5d1.png" alt="2.png"></p>
 <p>跟踪代码，发现，它的触发发生在RPCResponse中。</p>
 <p>代码：RegionClient.decode()</p>
 <p>关键代码：</p>
@@ -285,11 +285,11 @@
 <li>RegionSplit</li>
 </ol>
 <p>性能压测环境，出现的现象是Region重合。其原因是：从线上拷贝下来的数据，在进行Region合并时，出现了重合。所以，导致每次压力一上来，就有大量的Scanner。</p>
-<p><img src="/../images/3-d38f29d20d5e41e58f05ebe8e6ae1013.png" alt="3.png"></p>
+<p><img src="/../../images/3-d38f29d20d5e41e58f05ebe8e6ae1013.png" alt="3.png"></p>
 <p>线上出现这个问题的原因是：Region Split。因为opentsdb会缓存region信息，在region split时，region信息发生了变化，所以，会尝试重新去缓存region。也会有大量的scanner。</p>
-<p><img src="/../images/4-5cb99bfd48054656a509b146581c09ee.png" alt="4.png"></p>
+<p><img src="/../../images/4-5cb99bfd48054656a509b146581c09ee.png" alt="4.png"></p>
 <p>关于RegionSplit之后，出现大量的rpc，在opentsdb里面有这样的说明：</p>
-<p><img src="/../images/5-9add68384d464507acd94f1ac9902d5e.png" alt="5.png"></p>
+<p><img src="/../../images/5-9add68384d464507acd94f1ac9902d5e.png" alt="5.png"></p>
 <p>意思是：<strong>每个Region</strong>在OpenTsdb中会里面会缓存1万个RPC请求。出现这种情况，它的建议是，调低缓存数量。</p>
 <p>而我们线上，因为写热点，大部分Region在split时，会出现短暂的scanner请求。从而造成对hbase有一定的冲击。此时：gc时间会持续很长时间。</p>
 <p>当我们内存配置合理时，RegionServer不再会宕机，只是会因为gc时间长而停止rpc请求。</p>
@@ -303,12 +303,12 @@
 <p>rpc失败后，会进行重试，可以考虑将最大重试次数进行控制。由10调整为3。</p>
 <p>hbase.client.retries.number&#x3D;3</p>
 <p>gc效果</p>
-<p><img src="/../images/6-4449470d540649f3b5030df088713222.png" alt="6.png"></p>
+<p><img src="/../../images/6-4449470d540649f3b5030df088713222.png" alt="6.png"></p>
 <p>从效果图我们看到，当重试次数降低后，gc时间明显降低了很多。那么问题来了，是什么原因导致它在不断的重试呢？</p>
 <h3 id="OpenTSDB重试原因分析"><a href="#OpenTSDB重试原因分析" class="headerlink" title="OpenTSDB重试原因分析"></a>OpenTSDB重试原因分析</h3><p>降低重试次数后，在opentsdb的日志中看到这样的异常：</p>
-<p><img src="/../images/7-d7d68829d523467080100c8e5cf3d2e4.png" alt="7.png"></p>
+<p><img src="/../../images/7-d7d68829d523467080100c8e5cf3d2e4.png" alt="7.png"></p>
 <p>在HBase中有这样的逻辑：</p>
-<p><img src="/../images/8-e3340b4c022f46fc8c68d777c35812c3.png" alt="8.png"></p>
+<p><img src="/../../images/8-e3340b4c022f46fc8c68d777c35812c3.png" alt="8.png"></p>
 <p>DeleteRequest会操作一行中的多列，我们的HBase中，几乎100%超过100列。而单个RegionServer中管理的Region数已经超过80个，所以，并发请求delete也很容易超过10。因此，在这种情况下，会有失败重试的现象。</p>
 <p>HBase之所以会有这样的限制，主要是为了保护HBase，防止大量的操作。</p>
 <p>由于我们是时间序列数据，一列值很小，而且在每个小时进行compaction时，会有3600列在同时提交，故，可以适当调大该参数：hbase.region.store.parallel.put.limit.min.column.count 由100调到3600。</p>
@@ -321,7 +321,7 @@
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">bufferEdit</span><span class="params">(BatchableRpc request)</span> &#123;</span><br><span class="line">    <span class="type">boolean</span> <span class="variable">schedule_flush</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line">    MultiAction batch;</span><br><span class="line">    <span class="keyword">synchronized</span>(<span class="built_in">this</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">this</span>.batched_rpcs == <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="built_in">this</span>.batched_rpcs = <span class="keyword">new</span> <span class="title class_">MultiAction</span>();</span><br><span class="line">            <span class="built_in">this</span>.addMultiActionCallbacks(<span class="built_in">this</span>.batched_rpcs);</span><br><span class="line">            schedule_flush = <span class="literal">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        batch = <span class="built_in">this</span>.batched_rpcs;</span><br><span class="line">        batch.add(request);</span><br><span class="line">        <span class="keyword">if</span> (batch.size() &lt; <span class="built_in">this</span>.batch_size) &#123;</span><br><span class="line">            <span class="comment">// 小于batch_size憋着不发</span></span><br><span class="line">            batch = <span class="literal">null</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="built_in">this</span>.batched_rpcs = <span class="keyword">new</span> <span class="title class_">MultiAction</span>();</span><br><span class="line">            <span class="built_in">this</span>.addMultiActionCallbacks(<span class="built_in">this</span>.batched_rpcs);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (schedule_flush) &#123;</span><br><span class="line">        <span class="built_in">this</span>.scheduleNextPeriodicFlush();</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (batch != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="built_in">this</span>.sendRpc(batch);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>在整点的时候，会有大量的put请求和delete请求。当它们在某个Region上缓存的rpc请求大于1024时，执行发送。因为时触发的都是上个小时的全部数据，在整点之后的几分钟内，基本都是满状态发送（rowkey排序的），且某些热的Region很容易在同一时间段内发送batch request，从而导致整点时hbase压力比较大。而随着时间的推移，某些rowkey已经被其他opentsdb实例发送掉了，Region请求达到1024个大小的时间值也均衡，所以后期发送会比较平稳。</p>
-<p><img src="/../images/9-d4628fb0711b47a1b519ef9e3b20a6f5.png" alt="9.png"></p>
+<p><img src="/../../images/9-d4628fb0711b47a1b519ef9e3b20a6f5.png" alt="9.png"></p>
 
     </div>
 

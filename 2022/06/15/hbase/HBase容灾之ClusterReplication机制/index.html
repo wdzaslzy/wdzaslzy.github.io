@@ -139,18 +139,18 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-count">28</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
           <a href="/categories/">
-        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-count">8</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-count">11</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -264,9 +264,9 @@
 <p>2 当Master收到创建Peer的请求时，会在zk上为该Peer创建相关的znode，保证元数据信息不会丢失</p>
 <p>3 Master创建完Peer的元数据node后，向每一个RegionServer发送创建Peer的请求，保证每个RegionServer都创建Peer。</p>
 <p>4 当每个RegionServer创建完成之后，Master返回创建结果给客户端。</p>
-<p><img src="/../images/1653393088.jpg"></p>
+<p><img src="/../../images/1653393088.jpg"></p>
 <h3 id="Replication原理"><a href="#Replication原理" class="headerlink" title="Replication原理"></a>Replication原理</h3><p>创建完Peer之后，真正负责数据同步的是RegionServer的ReplicationSource线程。数据推送流程如下：</p>
-<p><img src="/../images/20220524195507.png"></p>
+<p><img src="/../../images/20220524195507.png"></p>
 <p>1 创建Peer时，每个RegionServer会创建一个ReplicationSource线程（线程名：replicationSource_10，10表示PeerId）。ReplicationSource会把当前正在写入的HLog都保存在复制队列中（逻辑保存），然后在RegionServer上注册一个Listener，用来监听HLog Roll操作。如果RegionServer做了HLog Roll操作，那么ReplicationSource收到这个操作后，会把这个HLog分到对应的walGroup-Queue里面，同时把HLog文件名持久化到zk上，这样重启后，还是可以继续复制未完成的HLog。</p>
 <p>2 每个WalGroup-Queue后端都有一个ReplicationSourceWALReader的线程，这个线程不断的从Queue去除一个Hlog，然后把HLog中的Entry逐个读出来后，放到一个名为entryBatchQueue的队列中。</p>
 <p>3 entryBatchQueue队列后端有一个名为ReplicationSourceShipper的线程，不断从Queue中取出LogEntry，交给Peer的ReplicationEndpoint，ReplicationEndpoint把这些Entry打包成一个replicateWALEntry操作，通过RPC发送到Peer集群的某个RegionServer上，对应的Peer集群的RegionServer把replicateWALEntry解析成若干个Batch操作，并调用batch接口执行。待RPC调用成功之后，ReplicationSourceShipper会更新最近一次成功复制的Hlog Position到ZooKeeper，以便RegionServer重启后，下次能从最新的position开始复制。</p>
@@ -307,9 +307,9 @@
 <p>启用和禁用某个表的复制</p>
 <h3 id="串行复制"><a href="#串行复制" class="headerlink" title="串行复制"></a>串行复制</h3><p>串行复制的目的是按数据到达的顺序从源集群复制到目标集群。</p>
 <h4 id="为什么需要串行复制"><a href="#为什么需要串行复制" class="headerlink" title="为什么需要串行复制"></a>为什么需要串行复制</h4><p>正常情况下，异步复制的方式，是通过WAL的创建时间来顺序读取，然后将数据复制到备集群。但是，当主集群发生region-move，如果存在未推送完成的hlog，hbase会将该hlog文件移动到其它RS上，新的RS会新起一个Replication线程进行复制。由于hlog是追加的，因此，此时会有两个RS并行向备集群复制数据，很容易造成数据不一致。</p>
-<p><img src="/../images/1653632864.jpg"></p>
+<p><img src="/../../images/1653632864.jpg"></p>
 <p>这种并行操作，会导致：<strong>主集群与备集群的数据不一致</strong></p>
-<p><img src="/../images/Dingtalk_20220527150319.jpg"></p>
+<p><img src="/../../images/Dingtalk_20220527150319.jpg"></p>
 <p>用户的写入顺序为：t1，t2，t5。用户在写到t5时，还没有进行集群复制（因为是异步的，所以有延迟）。</p>
 <p>当用户在写完t2后，发生了region-move，此时，t1，t2的数据是在RS1上，t5的数据在RS2上。</p>
 <p>那么，此时两个RS会同时往备集群进行复制数据。最终备集群接收到的可能是：</p>
@@ -320,7 +320,7 @@
 <h4 id="串行复制的工作原理"><a href="#串行复制的工作原理" class="headerlink" title="串行复制的工作原理"></a>串行复制的工作原理</h4><p>并行复制的问题原因是：Region从一个RegionServer移动到另一个RegionServer的过程中，Region的数据会分散在两个RegionServer的HLog上，而两个RegionServer完全独立的推送各自的HLog，从而导致同一个Region的数据并行的写入Peer集群。</p>
 <p>知道了问题根因，比较简单的解决思路是：把Region的数据按照Region Move发生的时间点t0分成两段。小于t0时间的数据都在RS0的HLog上，大于t0时间的数据都在RS1的HLog上。让RS0先推小于t0的数据，等RS0把小于t0的数据全部推送到备集群之后，RS1再开始推送大于t0的数据。</p>
 <p>hbase的同步策略如下图：</p>
-<p><img src="/../images/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20220527153819.png"></p>
+<p><img src="/../../images/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20220527153819.png"></p>
 <p>几个概念：</p>
 <ul>
 <li>Barrier：和上述思路中的t0概念类似。具体是指，每一个Region重新Assign到新的RegionServer时，新RegionServer打开Region前能读到最大SequenceId（此Region在HLog中最近一次写入数据分配的Id），因此，每Open一次Region，就会产生一个新的Barrier。</li>
@@ -330,7 +330,7 @@
 <h3 id="同步复制"><a href="#同步复制" class="headerlink" title="同步复制"></a>同步复制</h3><p>一般情况下，默认HBase的复制方式是异步复制。即HBase客户端写入数据到主集群之后就返回了，然后主集群再异步的把数据依次推送到备份集群。这样存在的一个问题是，若主集群因为bug或其他原因意外退出无法提供服务时，备份集群的数据是比主集群少的。这时，HBase的可用性将受到极大影响。</p>
 <h4 id="设计思路"><a href="#设计思路" class="headerlink" title="设计思路"></a>设计思路</h4><p>同步复制的核心思想是，RegionServer在收到写入请求时，不仅会在主集群上写一份HLog日志，还会同时在备份集群上写一份RemoteWAL日志，只有等主集群上的HLog和备集群上的RemoteWAL都写入成功且MemStore写入成功后，才返回给客户端。</p>
 <p>除此之外，主集群和备集群之间还会开启异步复制链路，若主集群上的某个HLog通过异步复制完全推送到备份集群，那么这个HLog在备集群上对应的RemoteWAL则被清理，否则不可清理。</p>
-<p><img src="/../images/hbase/20220608180802.jpg"></p>
+<p><img src="/../../images/hbase/20220608180802.jpg"></p>
 <p>因此，主集群的每一次写入，备份集群斗殴不会丢失这次写入的数据，一旦主集群发生故障，只需要回放RemoteWAL日志到备集群，备集群马上就可以为线上提供服务。</p>
 <h4 id="开启同步复制的操作流程"><a href="#开启同步复制的操作流程" class="headerlink" title="开启同步复制的操作流程"></a>开启同步复制的操作流程</h4><p><strong>第一步：添加两个同步Replication</strong></p>
 <p>在主集群上添加peer：</p>
@@ -383,6 +383,9 @@
                 </a>
             </div>
             <div class="post-nav-item">
+                <a href="/2022/07/07/flink/Flink%E6%80%BB%E7%BB%93%E4%B9%8B%E4%B8%80%EF%BC%9A%E5%89%8D%E8%A8%80%E5%8F%8A%E6%9C%AC%E5%9C%B0%E8%B0%83%E8%AF%95/" rel="next" title="Flink总结之一：前言及本地调试">
+                  Flink总结之一：前言及本地调试 <i class="fa fa-chevron-right"></i>
+                </a>
             </div>
           </div>
     </footer>
