@@ -127,7 +127,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">28</span>
+          <span class="site-state-item-count">32</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -256,7 +256,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2021/09/14/%E6%9E%B6%E6%9E%84%E4%B9%8B%E4%B8%80-%E6%9E%B6%E6%9E%84%E7%9A%84%E7%9B%AE%E7%9A%84%E6%98%AF%E4%BB%80%E4%B9%88/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/06/17/hbase/HBase%E5%AE%B9%E7%81%BE%E4%B9%8BClusterReplication%E5%AE%9E%E8%B7%B5/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/head.jpg">
@@ -274,7 +274,7 @@
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2021/09/14/%E6%9E%B6%E6%9E%84%E4%B9%8B%E4%B8%80-%E6%9E%B6%E6%9E%84%E7%9A%84%E7%9B%AE%E7%9A%84%E6%98%AF%E4%BB%80%E4%B9%88/" class="post-title-link" itemprop="url">架构之一:架构的目的是什么</a>
+          <a href="/2022/06/17/hbase/HBase%E5%AE%B9%E7%81%BE%E4%B9%8BClusterReplication%E5%AE%9E%E8%B7%B5/" class="post-title-link" itemprop="url">HBase容灾之ClusterReplication实践</a>
         </h2>
 
         <div class="post-meta-container">
@@ -285,14 +285,14 @@
       </span>
       <span class="post-meta-item-text">发表于</span>
 
-      <time title="创建时间：2021-09-14 14:42:26" itemprop="dateCreated datePublished" datetime="2021-09-14T14:42:26+08:00">2021-09-14</time>
+      <time title="创建时间：2022-06-17 10:44:34" itemprop="dateCreated datePublished" datetime="2022-06-17T10:44:34+08:00">2022-06-17</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2022-06-09 10:36:29" itemprop="dateModified" datetime="2022-06-09T10:36:29+08:00">2022-06-09</time>
+      <time title="修改时间：2022-07-25 17:38:34" itemprop="dateModified" datetime="2022-07-25T17:38:34+08:00">2022-07-25</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -300,7 +300,7 @@
       </span>
       <span class="post-meta-item-text">分类于</span>
         <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E6%9E%B6%E6%9E%84%E4%B9%8B%E9%81%93/" itemprop="url" rel="index"><span itemprop="name">架构之道</span></a>
+          <a href="/categories/HBase%E8%B0%83%E4%BC%98/" itemprop="url" rel="index"><span itemprop="name">HBase调优</span></a>
         </span>
     </span>
 
@@ -314,94 +314,7 @@
     
     
     <div class="post-body" itemprop="articleBody">
-          <p>最近对公司内部项目做了一些重构，对项目架构这一块也有了一定的理解，结合在企业内部的实际项目，来记录一下个人在架构这块学到的一些经验和知识。</p>
-          <!--noindex-->
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2022/07/07/flink/Flink%E6%80%BB%E7%BB%93%E4%B9%8B%E4%B8%80%EF%BC%9A%E5%89%8D%E8%A8%80%E5%8F%8A%E6%9C%AC%E5%9C%B0%E8%B0%83%E8%AF%95/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/head.jpg">
-      <meta itemprop="name" content="乡间小鹿">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="大数据架构之道">
-      <meta itemprop="description" content="每一个不曾起舞的日子都是对生命的辜负">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="undefined | 大数据架构之道">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2022/07/07/flink/Flink%E6%80%BB%E7%BB%93%E4%B9%8B%E4%B8%80%EF%BC%9A%E5%89%8D%E8%A8%80%E5%8F%8A%E6%9C%AC%E5%9C%B0%E8%B0%83%E8%AF%95/" class="post-title-link" itemprop="url">Flink总结之一：前言及本地调试</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2022-07-07 10:27:08" itemprop="dateCreated datePublished" datetime="2022-07-07T10:27:08+08:00">2022-07-07</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2022-07-08 17:38:32" itemprop="dateModified" datetime="2022-07-08T17:38:32+08:00">2022-07-08</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/Flink%E6%80%BB%E7%BB%93/" itemprop="url" rel="index"><span itemprop="name">Flink总结</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>使用Flink已有三年，虽然在我们真实的业务场景下，使用到Flink的特性并不多，但不能代表未来不会使用到其它的特性。为了保证自己的知识库，所以打算写一下Flink相关的总结，以便日后翻阅。</p>
+          <p>本篇是基于ClusterReplication的理论基础，进行实践。理论基础请参考前文：</p>
           <!--noindex-->
           <!--/noindex-->
         
@@ -517,6 +430,435 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2021/09/14/%E6%9E%B6%E6%9E%84%E4%B9%8B%E4%B8%80-%E6%9E%B6%E6%9E%84%E7%9A%84%E7%9B%AE%E7%9A%84%E6%98%AF%E4%BB%80%E4%B9%88/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/head.jpg">
+      <meta itemprop="name" content="乡间小鹿">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="大数据架构之道">
+      <meta itemprop="description" content="每一个不曾起舞的日子都是对生命的辜负">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | 大数据架构之道">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2021/09/14/%E6%9E%B6%E6%9E%84%E4%B9%8B%E4%B8%80-%E6%9E%B6%E6%9E%84%E7%9A%84%E7%9B%AE%E7%9A%84%E6%98%AF%E4%BB%80%E4%B9%88/" class="post-title-link" itemprop="url">架构之一:架构的目的是什么</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2021-09-14 14:42:26" itemprop="dateCreated datePublished" datetime="2021-09-14T14:42:26+08:00">2021-09-14</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2022-06-09 10:36:29" itemprop="dateModified" datetime="2022-06-09T10:36:29+08:00">2022-06-09</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E6%9E%B6%E6%9E%84%E4%B9%8B%E9%81%93/" itemprop="url" rel="index"><span itemprop="name">架构之道</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>最近对公司内部项目做了一些重构，对项目架构这一块也有了一定的理解，结合在企业内部的实际项目，来记录一下个人在架构这块学到的一些经验和知识。</p>
+          <!--noindex-->
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/07/20/hbase/HBase%E9%A2%91%E7%B9%81%E9%87%8D%E5%90%AF/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/head.jpg">
+      <meta itemprop="name" content="乡间小鹿">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="大数据架构之道">
+      <meta itemprop="description" content="每一个不曾起舞的日子都是对生命的辜负">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | 大数据架构之道">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2022/07/20/hbase/HBase%E9%A2%91%E7%B9%81%E9%87%8D%E5%90%AF/" class="post-title-link" itemprop="url">新搭HBase故障处理记录</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+      
+
+      <time title="创建时间：2022-07-20 10:14:35 / 修改时间：11:38:19" itemprop="dateCreated datePublished" datetime="2022-07-20T10:14:35+08:00">2022-07-20</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E9%9A%8F%E4%BE%BF%E4%B8%80%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">随便一记</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>新搭建的HBase，没有任何表，web-ui上不显示hbase系统表。过一会儿退出master。</p>
+          <!--noindex-->
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/07/15/flink/Flink%E6%80%BB%E7%BB%93%E4%B9%8B%E4%BA%8C%EF%BC%9A%E8%BF%90%E8%A1%8C%E8%BF%87%E7%A8%8B%E8%AF%A6%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/head.jpg">
+      <meta itemprop="name" content="乡间小鹿">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="大数据架构之道">
+      <meta itemprop="description" content="每一个不曾起舞的日子都是对生命的辜负">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | 大数据架构之道">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2022/07/15/flink/Flink%E6%80%BB%E7%BB%93%E4%B9%8B%E4%BA%8C%EF%BC%9A%E8%BF%90%E8%A1%8C%E8%BF%87%E7%A8%8B%E8%AF%A6%E8%A7%A3/" class="post-title-link" itemprop="url">Flink总结之二：运行过程详解</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-07-15 16:22:35" itemprop="dateCreated datePublished" datetime="2022-07-15T16:22:35+08:00">2022-07-15</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2022-07-25 17:39:03" itemprop="dateModified" datetime="2022-07-25T17:39:03+08:00">2022-07-25</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Flink%E6%80%BB%E7%BB%93/" itemprop="url" rel="index"><span itemprop="name">Flink总结</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>Flink运行过程是Flink引擎的核心部分，支撑着Flink流作业和批作业的运行，同时保障作业的高可用和可扩展性等。Flink运行时采用Master-Worker的架构，其中Flink的Master节点为JobManager，Worker节点为TaskManager。</p>
+          <!--noindex-->
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/07/13/other/%E9%A2%91%E7%B9%81%E9%AB%98%E5%B9%B6%E5%8F%91%E8%AF%B7%E6%B1%82%E5%AF%BC%E8%87%B4%E6%9C%8D%E5%8A%A1%E5%93%8D%E5%BA%94%E5%8F%98%E6%85%A2%E3%80%81%E5%81%87%E6%AD%BB%E3%80%81OOM/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/head.jpg">
+      <meta itemprop="name" content="乡间小鹿">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="大数据架构之道">
+      <meta itemprop="description" content="每一个不曾起舞的日子都是对生命的辜负">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | 大数据架构之道">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2022/07/13/other/%E9%A2%91%E7%B9%81%E9%AB%98%E5%B9%B6%E5%8F%91%E8%AF%B7%E6%B1%82%E5%AF%BC%E8%87%B4%E6%9C%8D%E5%8A%A1%E5%93%8D%E5%BA%94%E5%8F%98%E6%85%A2%E3%80%81%E5%81%87%E6%AD%BB%E3%80%81OOM/" class="post-title-link" itemprop="url">频繁高并发请求导致服务响应变慢、假死、OOM</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-07-13 15:55:40" itemprop="dateCreated datePublished" datetime="2022-07-13T15:55:40+08:00">2022-07-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2022-07-20 10:17:42" itemprop="dateModified" datetime="2022-07-20T10:17:42+08:00">2022-07-20</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E9%9A%8F%E4%BE%BF%E4%B8%80%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">随便一记</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>频繁高并发请求导致服务响应变慢、出现假死，直至OOM后重启。是什么原因引起的呢？</p>
+          <!--noindex-->
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/07/07/flink/Flink%E6%80%BB%E7%BB%93%E4%B9%8B%E4%B8%80%EF%BC%9A%E5%89%8D%E8%A8%80%E5%8F%8A%E6%9C%AC%E5%9C%B0%E8%B0%83%E8%AF%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/head.jpg">
+      <meta itemprop="name" content="乡间小鹿">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="大数据架构之道">
+      <meta itemprop="description" content="每一个不曾起舞的日子都是对生命的辜负">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | 大数据架构之道">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2022/07/07/flink/Flink%E6%80%BB%E7%BB%93%E4%B9%8B%E4%B8%80%EF%BC%9A%E5%89%8D%E8%A8%80%E5%8F%8A%E6%9C%AC%E5%9C%B0%E8%B0%83%E8%AF%95/" class="post-title-link" itemprop="url">Flink总结之一：前言及本地调试</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-07-07 10:27:08" itemprop="dateCreated datePublished" datetime="2022-07-07T10:27:08+08:00">2022-07-07</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2022-07-08 17:38:32" itemprop="dateModified" datetime="2022-07-08T17:38:32+08:00">2022-07-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Flink%E6%80%BB%E7%BB%93/" itemprop="url" rel="index"><span itemprop="name">Flink总结</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>使用Flink已有三年，虽然在我们真实的业务场景下，使用到Flink的特性并不多，但不能代表未来不会使用到其它的特性。为了保证自己的知识库，所以打算写一下Flink相关的总结，以便日后翻阅。</p>
+          <!--noindex-->
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
     <link itemprop="mainEntityOfPage" href="http://example.com/2022/06/09/Redis%E4%B8%ADBigKey%E5%AF%B9%E8%AF%BB%E5%86%99%E6%80%A7%E8%83%BD%E7%9A%84%E5%BD%B1%E5%93%8D/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -553,7 +895,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2022-06-14 09:26:15" itemprop="dateModified" datetime="2022-06-14T09:26:15+08:00">2022-06-14</time>
+      <time title="修改时间：2022-07-20 10:18:04" itemprop="dateModified" datetime="2022-07-20T10:18:04+08:00">2022-07-20</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -561,7 +903,7 @@
       </span>
       <span class="post-meta-item-text">分类于</span>
         <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/Redos/" itemprop="url" rel="index"><span itemprop="name">Redos</span></a>
+          <a href="/categories/%E9%9A%8F%E4%BE%BF%E4%B8%80%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">随便一记</span></a>
         </span>
     </span>
 
@@ -676,335 +1018,8 @@
 
 
 
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2022/05/11/YARN%E7%BB%84%E7%BB%87%E6%9E%B6%E6%9E%84/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/head.jpg">
-      <meta itemprop="name" content="乡间小鹿">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="大数据架构之道">
-      <meta itemprop="description" content="每一个不曾起舞的日子都是对生命的辜负">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="undefined | 大数据架构之道">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2022/05/11/YARN%E7%BB%84%E7%BB%87%E6%9E%B6%E6%9E%84/" class="post-title-link" itemprop="url">YARN组织架构</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2022-05-11 11:37:43" itemprop="dateCreated datePublished" datetime="2022-05-11T11:37:43+08:00">2022-05-11</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/yarn%E8%AF%A6%E8%A7%A3/" itemprop="url" rel="index"><span itemprop="name">yarn详解</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>yarn的核心思想是将集群资源进行管理。例如：任务的调度与监控。为达到该目的，yarn提供了两个组件：ResourceManager 和 NodeManager。其中，ResourceManager用来管理集群资源，NodeManager是每台机器的框架代理</p>
-          <!--noindex-->
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2022/04/20/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%B8%89%E3%80%81%E8%BF%81%E7%A7%BB%E8%BF%87%E7%A8%8B%E4%B8%AD%E5%87%BA%E7%8E%B0%E7%9A%84%E9%87%8D%E5%A4%A7%E7%BA%BF%E4%B8%8A%E4%BA%8B%E6%95%85/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/head.jpg">
-      <meta itemprop="name" content="乡间小鹿">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="大数据架构之道">
-      <meta itemprop="description" content="每一个不曾起舞的日子都是对生命的辜负">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="undefined | 大数据架构之道">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2022/04/20/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%B8%89%E3%80%81%E8%BF%81%E7%A7%BB%E8%BF%87%E7%A8%8B%E4%B8%AD%E5%87%BA%E7%8E%B0%E7%9A%84%E9%87%8D%E5%A4%A7%E7%BA%BF%E4%B8%8A%E4%BA%8B%E6%95%85/" class="post-title-link" itemprop="url">HBase采坑集：三、迁移过程中出现的重大线上事故</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2022-04-20 13:46:16" itemprop="dateCreated datePublished" datetime="2022-04-20T13:46:16+08:00">2022-04-20</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/HBase%E9%87%87%E5%9D%91%E9%9B%86/" itemprop="url" rel="index"><span itemprop="name">HBase采坑集</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>上一篇记录了在进行bulkload编码时遇到的坑，这一篇记录一下，实际执行过程中遇到的坑。采坑集 采坑1——单次load太多hfile后，hmaster飘红 现象 单次load了太多的hfile，每个region接近100个hfile</p>
-          <!--noindex-->
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2022/04/14/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%BA%8C%E3%80%81bulkload%E7%BC%96%E7%A0%81%E4%B8%AD%E7%9A%84%E5%9D%91/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/head.jpg">
-      <meta itemprop="name" content="乡间小鹿">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="大数据架构之道">
-      <meta itemprop="description" content="每一个不曾起舞的日子都是对生命的辜负">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="undefined | 大数据架构之道">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2022/04/14/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%BA%8C%E3%80%81bulkload%E7%BC%96%E7%A0%81%E4%B8%AD%E7%9A%84%E5%9D%91/" class="post-title-link" itemprop="url">HBase采坑集：二、bulkload编码中的坑</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2022-04-14 10:41:17" itemprop="dateCreated datePublished" datetime="2022-04-14T10:41:17+08:00">2022-04-14</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2022-04-19 15:55:30" itemprop="dateModified" datetime="2022-04-19T15:55:30+08:00">2022-04-19</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/HBase%E9%87%87%E5%9D%91%E9%9B%86/" itemprop="url" rel="index"><span itemprop="name">HBase采坑集</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>当我们分析了问题，并改进了新的rowkey结构，那么我们为了做到无缝对接，需要将历史数据进行迁移。迁移历史数据的思路大体为：1. 读取原数据 2. 按新结构生成RowKey 3. 写入新表</p>
-          <!--noindex-->
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2022/04/12/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%B8%80%E3%80%81%E6%95%B0%E6%8D%AE%E7%83%AD%E7%82%B9%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/head.jpg">
-      <meta itemprop="name" content="乡间小鹿">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="大数据架构之道">
-      <meta itemprop="description" content="每一个不曾起舞的日子都是对生命的辜负">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="undefined | 大数据架构之道">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2022/04/12/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%B8%80%E3%80%81%E6%95%B0%E6%8D%AE%E7%83%AD%E7%82%B9%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/" class="post-title-link" itemprop="url">HBase采坑集：一、数据热点问题分析</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2022-04-12 14:28:39" itemprop="dateCreated datePublished" datetime="2022-04-12T14:28:39+08:00">2022-04-12</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/HBase%E9%87%87%E5%9D%91%E9%9B%86/" itemprop="url" rel="index"><span itemprop="name">HBase采坑集</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>当前我们的数据是时间序列数据。由OpenTsdb写入。OpenTsdb在HBase中设计的RowKey格式：metric_time_tagk1_tagv1…tagkn_tagvn这种时间序列的数据，存在一个很严重的问题：数据热点。</p>
-          <!--noindex-->
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
   <nav class="pagination">
-    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/page/4/">4</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
   </nav>
 
 </div>

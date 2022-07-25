@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.2.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha256-DfWjNxDkM94fVBWx1H5BMMp0Zq7luBlV8QRcSES7s+0=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.12.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="Flink运行过程是Flink引擎的核心部分，支撑着Flink流作业和批作业的运行，同时保障作业的高可用和可扩展性等。Flink运行时采用Master-Worker的架构，其中Flink的Master节点为JobManager，Worker节点为TaskManager。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink总结之二：运行过程详解">
+<meta property="og:url" content="http://example.com/2022/07/15/flink/Flink%E6%80%BB%E7%BB%93%E4%B9%8B%E4%BA%8C%EF%BC%9A%E8%BF%90%E8%A1%8C%E8%BF%87%E7%A8%8B%E8%AF%A6%E8%A7%A3/index.html">
+<meta property="og:site_name" content="大数据架构之道">
+<meta property="og:description" content="Flink运行过程是Flink引擎的核心部分，支撑着Flink流作业和批作业的运行，同时保障作业的高可用和可扩展性等。Flink运行时采用Master-Worker的架构，其中Flink的Master节点为JobManager，Worker节点为TaskManager。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/images/flink/20220719105119.png">
+<meta property="og:image" content="http://example.com/images/flink/20220719173110.png">
+<meta property="article:published_time" content="2022-07-15T08:22:35.000Z">
+<meta property="article:modified_time" content="2022-07-25T09:39:03.071Z">
+<meta property="article:author" content="乡间小鹿">
+<meta property="article:tag" content="flink">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/images/flink/20220719105119.png">
+
+
+<link rel="canonical" href="http://example.com/2022/07/15/flink/Flink%E6%80%BB%E7%BB%93%E4%B9%8B%E4%BA%8C%EF%BC%9A%E8%BF%90%E8%A1%8C%E8%BF%87%E7%A8%8B%E8%AF%A6%E8%A7%A3/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://example.com/2022/07/15/flink/Flink%E6%80%BB%E7%BB%93%E4%B9%8B%E4%BA%8C%EF%BC%9A%E8%BF%90%E8%A1%8C%E8%BF%87%E7%A8%8B%E8%AF%A6%E8%A7%A3/","path":"2022/07/15/flink/Flink总结之二：运行过程详解/","title":"Flink总结之二：运行过程详解"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Flink总结之二：运行过程详解 | 大数据架构之道</title>
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">大数据架构之道</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-说说"><a href="/shuoshuo/" rel="section"><i class="fa fa-calendar fa-fw"></i>说说</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Flink%E8%BF%90%E8%A1%8C%E6%97%B6%E7%BB%84%E4%BB%B6"><span class="nav-number">1.</span> <span class="nav-text">Flink运行时组件</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#REST%E7%BB%84%E4%BB%B6"><span class="nav-number">1.1.</span> <span class="nav-text">REST组件</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#RestServerEndpoint"><span class="nav-number">1.1.1.</span> <span class="nav-text">RestServerEndpoint</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="乡间小鹿"
+      src="/images/head.jpg">
+  <p class="site-author-name" itemprop="name">乡间小鹿</p>
+  <div class="site-description" itemprop="description">每一个不曾起舞的日子都是对生命的辜负</div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">32</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/07/15/flink/Flink%E6%80%BB%E7%BB%93%E4%B9%8B%E4%BA%8C%EF%BC%9A%E8%BF%90%E8%A1%8C%E8%BF%87%E7%A8%8B%E8%AF%A6%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/head.jpg">
+      <meta itemprop="name" content="乡间小鹿">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="大数据架构之道">
+      <meta itemprop="description" content="每一个不曾起舞的日子都是对生命的辜负">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Flink总结之二：运行过程详解 | 大数据架构之道">
+      <meta itemprop="description" content="Flink运行过程是Flink引擎的核心部分，支撑着Flink流作业和批作业的运行，同时保障作业的高可用和可扩展性等。Flink运行时采用Master-Worker的架构，其中Flink的Master节点为JobManager，Worker节点为TaskManager。">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Flink总结之二：运行过程详解
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-07-15 16:22:35" itemprop="dateCreated datePublished" datetime="2022-07-15T16:22:35+08:00">2022-07-15</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2022-07-25 17:39:03" itemprop="dateModified" datetime="2022-07-25T17:39:03+08:00">2022-07-25</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Flink%E6%80%BB%E7%BB%93/" itemprop="url" rel="index"><span itemprop="name">Flink总结</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+            <div class="post-description">Flink运行过程是Flink引擎的核心部分，支撑着Flink流作业和批作业的运行，同时保障作业的高可用和可扩展性等。Flink运行时采用Master-Worker的架构，其中Flink的Master节点为JobManager，Worker节点为TaskManager。</div>
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p>Flink运行过程是Flink引擎的核心部分，支撑着Flink流作业和批作业的运行，同时保障作业的高可用和可扩展性等。<strong>Flink运行时采用Master-Worker的架构，其中Flink的Master节点为JobManager，Worker节点为TaskManager</strong>。</p>
+<p>那么，Flink运行时都有哪些组件，分别承担什么样的职责呢？</p>
+<h2 id="Flink运行时组件"><a href="#Flink运行时组件" class="headerlink" title="Flink运行时组件"></a>Flink运行时组件</h2><p>Flink运行时组件（角色）有REST、Dispatcher、JobMaster、Resource-Manager和TaskExecutor，而客户端负责与运行时组件交互、提交作业、查询集群和作业的状态等操作。</p>
+<p><img src="/../../images/flink/20220719105119.png"></p>
+<ul>
+<li><p>JobManager</p>
+<ul>
+<li><p>REST</p>
+<p>接收客户端的HTTP请求，提供各种REST服务。如：作业、集群的指标，作业的运行时状态信息，操作作业等。</p>
+</li>
+<li><p>Dispatcher</p>
+<p>接收REST转发的操作JobMaster请求，启动和管理JobMaster。</p>
+</li>
+<li><p>JobMaster</p>
+<p>主要负责作业的运行调度和检查点的协调。例如：生命周期管理、任务的调度、出错恢复、状态查询、分布式状态快照等。</p>
+</li>
+<li><p>ResourceManager</p>
+<p>在不同部署模式下（k8s，yarn等）对资源进行管理（申请资源、回收资源、资源状态管理）。</p>
+</li>
+</ul>
+</li>
+<li><p>TaskManager</p>
+<ul>
+<li><p>TaskExecutor</p>
+<p>对资源（cpu、内存）以逻辑的slot进行划分，作业的task会调度到slot上运行。</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="REST组件"><a href="#REST组件" class="headerlink" title="REST组件"></a>REST组件</h3><p>rest组件的核心代码是WebMonitorEndpoint类，相关类图如下：</p>
+<p><img src="/../../images/flink/20220719173110.png"></p>
+<p>从该类图看到，WebMonitorEndpoint继承自RestServerEndpoint，实现了JsonArchivist和LeaderContender接口。其中，RestServerEndpoint是基于Netty实现的抽象类。JsonArchivist接口定义了基于ExecutionGraph生成JSON的接口。LeaderContender接口定义了Leader选举方面的处理。</p>
+<p>WebMonitorEndpoint还有两个子类：MiniDispatcherRestEndpoint和DispatcherRestEndpoint。MiniDispatcherRestEndpoint是基于pre-job模式的实现。DispatcherRestEndpoint是基于session模式的实现。</p>
+<p>当运行一个flink job时，</p>
+<h4 id="RestServerEndpoint"><a href="#RestServerEndpoint" class="headerlink" title="RestServerEndpoint"></a>RestServerEndpoint</h4>
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/flink/" rel="tag"><i class="fa fa-tag"></i> flink</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/07/13/other/%E9%A2%91%E7%B9%81%E9%AB%98%E5%B9%B6%E5%8F%91%E8%AF%B7%E6%B1%82%E5%AF%BC%E8%87%B4%E6%9C%8D%E5%8A%A1%E5%93%8D%E5%BA%94%E5%8F%98%E6%85%A2%E3%80%81%E5%81%87%E6%AD%BB%E3%80%81OOM/" rel="prev" title="频繁高并发请求导致服务响应变慢、假死、OOM">
+                  <i class="fa fa-chevron-left"></i> 频繁高并发请求导致服务响应变慢、假死、OOM
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/07/20/hbase/HBase%E9%A2%91%E7%B9%81%E9%87%8D%E5%90%AF/" rel="next" title="新搭HBase故障处理记录">
+                  新搭HBase故障处理记录 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">乡间小鹿</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>
