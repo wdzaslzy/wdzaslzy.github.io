@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.2.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha256-DfWjNxDkM94fVBWx1H5BMMp0Zq7luBlV8QRcSES7s+0=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.12.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="一直对腾讯做产品的能力比较敬佩的，我们组做消息推送系统，而腾讯的信鸽就是我们学习的榜样。京东很多做产品的思想是跟腾讯学的，而京东很多同事也从腾讯过来的(京东合并了腾讯电商)，耳濡目染学到很多东西。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="腾讯海量服务之道">
+<meta property="og:url" content="http://example.com/2022/07/26/%E6%9E%B6%E6%9E%84/%E8%85%BE%E8%AE%AF%E6%B5%B7%E9%87%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%81%93/index.html">
+<meta property="og:site_name" content="大数据架构之道">
+<meta property="og:description" content="一直对腾讯做产品的能力比较敬佩的，我们组做消息推送系统，而腾讯的信鸽就是我们学习的榜样。京东很多做产品的思想是跟腾讯学的，而京东很多同事也从腾讯过来的(京东合并了腾讯电商)，耳濡目染学到很多东西。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://baozh.github.io/assets/images/2015/tencent1.png">
+<meta property="og:image" content="https://baozh.github.io/assets/images/2015/tencent3.png">
+<meta property="og:image" content="https://baozh.github.io/assets/images/2015/tencent4.png">
+<meta property="og:image" content="https://baozh.github.io/assets/images/2015/tencent5.png">
+<meta property="og:image" content="https://baozh.github.io/assets/images/2015/tencent6.png">
+<meta property="og:image" content="http://example.com/images/%E6%9E%B6%E6%9E%84/1.png">
+<meta property="article:published_time" content="2022-07-26T02:22:11.000Z">
+<meta property="article:modified_time" content="2022-07-26T02:27:40.545Z">
+<meta property="article:author" content="乡间小鹿">
+<meta property="article:tag" content="架构">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://baozh.github.io/assets/images/2015/tencent1.png">
+
+
+<link rel="canonical" href="http://example.com/2022/07/26/%E6%9E%B6%E6%9E%84/%E8%85%BE%E8%AE%AF%E6%B5%B7%E9%87%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%81%93/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://example.com/2022/07/26/%E6%9E%B6%E6%9E%84/%E8%85%BE%E8%AE%AF%E6%B5%B7%E9%87%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%81%93/","path":"2022/07/26/架构/腾讯海量服务之道/","title":"腾讯海量服务之道"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>腾讯海量服务之道 | 大数据架构之道</title>
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">大数据架构之道</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-说说"><a href="/shuoshuo/" rel="section"><i class="fa fa-calendar fa-fw"></i>说说</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%B7%E9%87%8F%E6%9C%8D%E5%8A%A1%E7%9A%84%E6%8A%80%E6%9C%AF%E4%BB%B7%E5%80%BC%E8%A7%82"><span class="nav-number">1.</span> <span class="nav-text">海量服务的技术价值观</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%89%E6%8D%9F%E6%9C%8D%E5%8A%A1"><span class="nav-number">1.1.</span> <span class="nav-text">有损服务</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%A8%E6%80%81%E8%BF%90%E8%90%A5"><span class="nav-number">1.2.</span> <span class="nav-text">动态运营</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%B7%E9%87%8F%E6%9C%8D%E5%8A%A1%E7%9A%847%E4%B8%AA%E6%8A%80%E6%9C%AF%E6%89%8B%E6%AE%B5"><span class="nav-number">2.</span> <span class="nav-text">海量服务的7个技术手段</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%B9%E7%81%BE"><span class="nav-number">2.1.</span> <span class="nav-text">容灾</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%87%E8%BD%BD%E4%BF%9D%E6%8A%A4"><span class="nav-number">2.2.</span> <span class="nav-text">过载保护</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1"><span class="nav-number">2.3.</span> <span class="nav-text">负载均衡</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%94%E6%80%A7%E5%8F%AF%E7%94%A8"><span class="nav-number">2.4.</span> <span class="nav-text">柔性可用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%86SET%E9%83%A8%E7%BD%B2"><span class="nav-number">2.5.</span> <span class="nav-text">分SET部署</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%81%B0%E5%BA%A6%E5%8F%91%E5%B8%83"><span class="nav-number">2.6.</span> <span class="nav-text">灰度发布</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AB%8B%E4%BD%93%E7%9B%91%E6%8E%A7"><span class="nav-number">2.7.</span> <span class="nav-text">立体监控</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%B7%E9%87%8F%E6%9C%8D%E5%8A%A1%E7%9A%844%E4%B8%AA%E6%84%8F%E8%AF%86"><span class="nav-number">3.</span> <span class="nav-text">海量服务的4个意识</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%A7%E7%B3%BB%E7%BB%9F%E5%81%9A%E5%B0%8F"><span class="nav-number">3.1.</span> <span class="nav-text">大系统做小</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%88%E6%8A%97%E4%BD%8F%E5%86%8D%E4%BC%98%E5%8C%96"><span class="nav-number">3.2.</span> <span class="nav-text">先抗住再优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B9%B2%E5%B9%B2%E5%87%80%E5%87%80"><span class="nav-number">3.3.</span> <span class="nav-text">干干净净</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%B9%E9%87%8D%E6%9E%84%E8%BE%B9%E7%94%9F%E6%B4%BB"><span class="nav-number">3.4.</span> <span class="nav-text">边重构边生活</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%B7%E9%87%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%81%93%E9%99%84%E5%9B%BE"><span class="nav-number">4.</span> <span class="nav-text">海量服务之道附图</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="乡间小鹿"
+      src="/images/head.jpg">
+  <p class="site-author-name" itemprop="name">乡间小鹿</p>
+  <div class="site-description" itemprop="description">每一个不曾起舞的日子都是对生命的辜负</div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">35</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/07/26/%E6%9E%B6%E6%9E%84/%E8%85%BE%E8%AE%AF%E6%B5%B7%E9%87%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%81%93/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/head.jpg">
+      <meta itemprop="name" content="乡间小鹿">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="大数据架构之道">
+      <meta itemprop="description" content="每一个不曾起舞的日子都是对生命的辜负">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="腾讯海量服务之道 | 大数据架构之道">
+      <meta itemprop="description" content="一直对腾讯做产品的能力比较敬佩的，我们组做消息推送系统，而腾讯的信鸽就是我们学习的榜样。京东很多做产品的思想是跟腾讯学的，而京东很多同事也从腾讯过来的(京东合并了腾讯电商)，耳濡目染学到很多东西。">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          腾讯海量服务之道
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+      
+
+      <time title="创建时间：2022-07-26 10:22:11 / 修改时间：10:27:40" itemprop="dateCreated datePublished" datetime="2022-07-26T10:22:11+08:00">2022-07-26</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E6%9E%B6%E6%9E%84%E4%B9%8B%E9%81%93/" itemprop="url" rel="index"><span itemprop="name">架构之道</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+            <div class="post-description">一直对腾讯做产品的能力比较敬佩的，我们组做消息推送系统，而腾讯的信鸽就是我们学习的榜样。京东很多做产品的思想是跟腾讯学的，而京东很多同事也从腾讯过来的(京东合并了腾讯电商)，耳濡目染学到很多东西。</div>
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p>一直对腾讯做产品的能力比较敬佩的，我们组做消息推送系统，而腾讯的信鸽就是我们学习的榜样。京东很多做产品的思想是跟腾讯学的，而京东很多同事也从腾讯过来的(京东合并了腾讯电商)，耳濡目染学到很多东西。</p>
+<p>前几天前腾讯的同事给我们分享了《解密腾讯海量服务之道》，讲了几个腾讯开发产品的经验原则，比较受益，遂总结下。</p>
+<p><strong>2个价值技术观, 7个技术手段, 4个意识</strong><br>腾讯的海量服务之道是由2个价值技术观和7个技术手段，4个意识组成。技术价值观是总体思想，意识是我们的态度，技术手段是实现技术价值观的手段或者方法。</p>
+<h2 id="海量服务的技术价值观"><a href="#海量服务的技术价值观" class="headerlink" title="海量服务的技术价值观"></a>海量服务的技术价值观</h2><h3 id="有损服务"><a href="#有损服务" class="headerlink" title="有损服务"></a>有损服务</h3><p><strong>CAP理论</strong><br>理论式系统基础理论CAP为分布式的应用提供了理基础:<br>C: Consistency，一致性；包括三种类型(强一致性，弱一致性，最终一致性)<br>A:Availability，可用性（主要指的是快速获取数据的能力，即性能）<br>P:tolerance of network Partition，分区容错性（亦包括可分布性）</p>
+<p>**有损服务经历了3个阶段的演变: **</p>
+<ol>
+<li>ACID事物保证阶段(金融，电信，石油，银行)<br>特点：通过硬件中间件、数据库（支持事务）的层层事务保障，提供给用户非此即彼的服务结果，数据一致性优先于反应速度。<br>缺点：系统冗余高，架构复杂，开发维护及运营成本非常高。</li>
+<li>BASE理论阶段(电商)<br>特点：BASE是Basically Available、Soft state、Eventually consistent三个词组的简写。通过牺牲【强一致性】，获得基本可用性和柔性可靠性并要求达到【最终一致性】<br>缺点：牺牲部分一致性，只能保证最终一致性。</li>
+<li>有损服务阶段(UGC)<br>特点：<br>a.放弃绝对一致，追求速度极致；<br>b.万有一失，让用户重试；<br>c.伸缩调度，降级服务；</li>
+</ol>
+<p>通过精心细分场景，选择牺牲一部分一致性、完整性，以达到通过较低的成本，能够支持海量服务需求，并且满足服务基本可用。</p>
+<h3 id="动态运营"><a href="#动态运营" class="headerlink" title="动态运营"></a>动态运营</h3><p>核心思想就是敏捷迭代， 所谓小步快跑，对用户的需求快速反应。简而言之就是“快速求证对用户猜想”的过程。</p>
+<p><img src="https://baozh.github.io/assets/images/2015/tencent1.png" alt="tencent1"></p>
+<p>许多伟人都说过类似的话：用户往往不知道真正想要什么，而且大多是时间是拿来“试错”的。动态运营就是快速求证对用户猜想的过程，这个过程是建立在以”运营”为中心的设计开发验证模式。</p>
+<p><img src="https://baozh.github.io/assets/images/2015/tencent3.png" alt="tencent3"></p>
+<h2 id="海量服务的7个技术手段"><a href="#海量服务的7个技术手段" class="headerlink" title="海量服务的7个技术手段"></a>海量服务的7个技术手段</h2><h3 id="容灾"><a href="#容灾" class="headerlink" title="容灾"></a>容灾</h3><p>互联网硬件容灾方案：</p>
+<table>
+<thead>
+<tr>
+<th align="left">事故</th>
+<th align="right">容灾方法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">光纤断&#x2F;机房停电</td>
+<td align="right">异地部署</td>
+</tr>
+<tr>
+<td align="left">服务器硬件故障死机</td>
+<td align="right">热备</td>
+</tr>
+<tr>
+<td align="left">网络环境恶劣</td>
+<td align="right">异地部署就近服务</td>
+</tr>
+<tr>
+<td align="left">黑客攻击</td>
+<td align="right">DNS建设</td>
+</tr>
+<tr>
+<td align="left">程序core</td>
+<td align="right">自动拉起</td>
+</tr>
+<tr>
+<td align="left">服务雪崩</td>
+<td align="right">负载均衡、流量拥塞控制、频率控制</td>
+</tr>
+</tbody></table>
+<p><strong>互联网业务逻辑层容灾</strong></p>
+<ol>
+<li>独立逻辑的逻辑层，被接入层负载均衡调用。<br>通过监控及时扩容，保证系统整体负载能力有冗余，一台服务器死机时，配置系统将其状态置为不可用，将其上的流量（平均）分给系统中其他服务器(s)上。</li>
+<li>分号段逻辑的逻辑层，每个逻辑层只能处理指定号段的请求。<br>n+n容灾：1对1容灾，比较奢侈，备份系统要么热备（平时负担50%请求）要么冷备（平时不工作，空跑），事故发生时，备机承担全部请求。<br>n+1容灾：备机平时冷备，拥有全局号段路由表，任何一台主机死亡后，备机都可以转成死亡主机的角色，负责相应号段的逻辑工作。</li>
+</ol>
+<p><strong>互联网业务数据层容灾</strong></p>
+<ol>
+<li>写唯一式同步<br>业务写请求只发给数据层主机，由主机采用快、慢同步结合的方式同步给各台备机。</li>
+<li>同时写式同步<br>业务将写请求发给所有数据层服务器，得到所有&#x2F;多数ack才算写完成。Yahoo的Zookeeper使用多数ack（如5台服务器有3+台ack）即成功的方式（读写都是），这种类似投票表决的方式被验证过可以严格保证数据一致性，也不用担心唯一的主机写失败，但是实现比较复杂。</li>
+</ol>
+<h3 id="过载保护"><a href="#过载保护" class="headerlink" title="过载保护"></a>过载保护</h3><p>在分布式集群系统中，某台设备故障，会造成系统整体的繁忙不可用；在做营销推广时，某个服务单元负载极大的现象会很快蔓延到其它服务单元，最终导致全部服务的不可用；用户群越大，系统规模越大，负载超限的情况扩散的就越快，最终会造成系统整体崩溃。上述现象在自然界用一个最直接的名词就是”雪崩”。</p>
+<p><strong>过载保护的四个方法:</strong></p>
+<ol>
+<li>轻重分离<br>轻重分离的主旨是对服务的内容进行细分，按照高内聚低耦合的方式部署服务，使得局部的过载不扩散到整个系统。</li>
+<li>及早拒绝<br>问题解决的阶段越早，成本越低，影响越小。因此我们一个系统的设计原则：【前端保护后端，后端不信任前端】，在发现系统有过载趋势时，前端系统就要开始拒绝新的用户请求接入。</li>
+<li>量力而为<br>过载保护是立体工程，各个层级都要首先做好自我保护，再考虑对关联系统的保护。运营时要有容量管理（即容量监控）。一般而言，建议容量管理按照70%预警，过载保护按照90%启动。</li>
+<li>动态调节<br>动态调节的核心思想是系统运营时通过持续监控业务状态数据寻找【平衡点】，形成一个正向动态反馈的循环：<br>业务正常状态-&gt; 过载保护状态 -&gt; 业务灰度恢复直到完全解除过保。</li>
+</ol>
+<p><img src="https://baozh.github.io/assets/images/2015/tencent4.png" alt="tencent4"></p>
+<h3 id="负载均衡"><a href="#负载均衡" class="headerlink" title="负载均衡"></a>负载均衡</h3><p>负载均衡和过载保护机制很像，其实两者的目地是一样的，即都有效保护后台服务，减轻后台服务的压力，但实现的手段和方法是不一样的。而且即使实现了负载均衡，也是需要提供过载保护机制。负载均衡考虑的是把请求合理分配到后台服务器上。 过载保护考虑的是防止后面的服务器的雪崩。</p>
+<p><strong>负载均衡的算法：</strong></p>
+<ol>
+<li>轮循均衡（Round Robin）<br>每一次来自网络的请求轮流分配给内部中的服务器，从1至N然后重新开始。此种均衡算法适合于服务器组中的所有服务器都有相同的软硬件配置并且平均服务请求相对均衡的情况。</li>
+<li>权重轮循均衡（Weighted Round Robin）<br>根据服务器的不同处理能力，给每个服务器分配不同的权值，使其能够接受相应权值数的服务请求。例如：服务器A的权值被设计成1，B的权值是3，C的权值是6，则服务器A、B、C将分别接受到10%、30％、60％的服务请求。此种均衡算法能确保高性能的服务器得到更多的使用率，避免低性能的服务器负载过重。</li>
+<li>随机均衡（Random）<br>把来自网络的请求随机分配给内部中的多个服务器。</li>
+<li>权重随机均衡（Weighted Random）<br>此种均衡算法类似于权重轮循算法，不过在处理请求分担时是个随机选择的过程。</li>
+<li>处理能力均衡<br>此种均衡算法将把服务请求分配给内部中处理负荷（根据服务器CPU型号、CPU数量、内存大小及当前连接数等换算而成）最轻的服务器，由于考虑到了内部服务器的处理能力及当前网络运行状况，所以此种均衡算法相对来说更加精确，尤其适合运用到第七层（应用层）负载均衡的情况下。</li>
+</ol>
+<p>负载均衡算法的实现有软件和硬件两种，这里重点分析软件的实现负载均衡的反向代理方式：<br><strong>反向代理（Reverse Proxy）方式</strong>是指以代理服务器来接受internet上的连接请求，然后将请求转发给内部网络上的服务器，并将从服务器上得到的结果返回给internet上请求连接的客户端，此时代理服务器对外就表现为一个服务器。</p>
+<p>反向代理负载均衡能以软件方式来实现，如nginx、apache等，也可以在高速缓存器、负载均衡器等硬件设备上实现。反向代理负载均衡可以将优化的负载均衡策略和代理服务器的高速缓存技术结合在一起，提升静态网页的访问速度，提供有益的性能；由于网络外部用户不能直接访问真实的服务器，具备额外的安全性。</p>
+<h3 id="柔性可用"><a href="#柔性可用" class="headerlink" title="柔性可用"></a>柔性可用</h3><p>在有损服务价值观支撑下的一种做法：重点接口重点保障，次要接口有损保障，并提供紧急时刻的降级能力，同时在前端设计时，即使降级也能保证用户体验。即不保证完美体验，对非关键路径进行有损，提升系统的可用性。<br>实现上会结合用户使用场景，根据资源消耗，调整产品策略，设计几个级别的、不同的用户体验。最大程度的保证关键服务的可用性。对应互联网服务来说就是要实现两点:</p>
+<ul>
+<li>要尽可能成功返回关键数据</li>
+<li>要尽可能正常接收请求，不能堵死</li>
+</ul>
+<h3 id="分SET部署"><a href="#分SET部署" class="headerlink" title="分SET部署"></a>分SET部署</h3><p>Set化部署主要为海量服务的运营和部署提供支持，为业务部署建立统一的衡量标准和规则。</p>
+<ul>
+<li>从业务层面来看到是一组服务器的处理能力，处理能力有两个量来描述，PCU（万人&#x2F;在线）和存储（GB）。</li>
+<li>来自于成本层面，即这一组服务器有多少台机器和外网带宽。综合评估设定合理的单位服务支撑能力。</li>
+</ul>
+<p>SET模型的一个重要特点是较强的自给自足能力，或者说，SET模型在很大程度上是自治的。从这个意义上说，SET模型与集团军也很具有可比性。</p>
+<p><strong>SET模型的特点：</strong></p>
+<ul>
+<li>一般来说，一个SET模型部署在一个IDC之内。</li>
+<li>高内聚，或者说自治系统——这是模块化的体现。</li>
+<li>同一业务的不同SET间通信：SET间专线窄带化。这是降低业务对专线带宽占用，同时也是降低专线抖动对业务的影响，提高业务的专线抖动免役力。</li>
+<li>即使SET间专线故障，独立SET也应至少提供基础服务，而不致停服。</li>
+</ul>
+<p>Set化部署的例子：<br>Qzone日志TDB仓库设定180A1+20B5+20C1+2B2+23A3为一个Set。</p>
+<h3 id="灰度发布"><a href="#灰度发布" class="headerlink" title="灰度发布"></a>灰度发布</h3><p>互联网行业的变化很多很快，导致代码发布也很多，因而引入bug的可能性也大了不少，与服务系统的稳定性形成了突出的矛盾。如何解决这个矛盾？如何既能基本保障服务稳定性，又能进行灵活反应、快速发布？</p>
+<p><strong>灰度发布的优势：</strong></p>
+<ol>
+<li>灰度发布能降低发布出问题的影响</li>
+<li>降低发布正常时的用户感知</li>
+<li>降低对测试的依赖</li>
+</ol>
+<p><strong>灰度发布的维度：</strong></p>
+<ol>
+<li>按照特性（内容维度）<br>每次只发布少部分特性、模块</li>
+</ol>
+<p>2.按照对象<br>白名单<br>Alpha用户<br>公司用户<br>用户等级等级<br>用户号段<br>其他业务逻辑</p>
+<h3 id="立体监控"><a href="#立体监控" class="headerlink" title="立体监控"></a>立体监控</h3><p>立体监控是对一个业务或者系统进行完整的监控，而业务从系统层次上又可以分为接入层，逻辑层，数据层。或者从基础的资源到用户实际体验来划分：</p>
+<p><img src="https://baozh.github.io/assets/images/2015/tencent5.png" alt="tencent5"></p>
+<p>按照上述层次划分，每层需要监控的技术指标如下：</p>
+<p><img src="https://baozh.github.io/assets/images/2015/tencent6.png" alt="tencent6"></p>
+<p><strong>报警</strong><br>有了监控，还需要有效的通知方式。目前用的最多的是设置告警了。当某个监控指标不正常时，通过向相关负责人发送告警，以便及时处理。但告警不宜设置过多，非关键的或者重复的告警需要考虑去掉，以免告警过多，接收人会对告警不敏感。</p>
+<h2 id="海量服务的4个意识"><a href="#海量服务的4个意识" class="headerlink" title="海量服务的4个意识"></a>海量服务的4个意识</h2><h3 id="大系统做小"><a href="#大系统做小" class="headerlink" title="大系统做小"></a>大系统做小</h3><p>大系统小做的核心思想是将功能复杂较大的系统，化大为小，减少模块耦合，降低相关联性，用多个独立的模块来实现整体系统的功能。<br>总的来说，大系统小做采用的是化繁为简、分而治之，便于开发和迅速实现；同时当某个模块出了问题时，因为相互独立，能将影响降到最低，不至于扩大影响范围。我们在实际工作也经常采用这种方法。<br>比如电商领域，会把系统分成订单模块，商品模块，售后，物流等模块，每个模块独立实现，互不影响。 再如物流的次日达项目，就按照交易线，物流线，结算线分开，每快互相独立，定义接口，最后把整个系统分解很多小块。<br>这样做本身容易开发，还有一点就是为以后系统的扩展和做灰度升级提供方便。即可以只灰度发布某一个模块，而不用发布整个模块。</p>
+<h3 id="先抗住再优化"><a href="#先抗住再优化" class="headerlink" title="先抗住再优化"></a>先抗住再优化</h3><p>先扛住再优化简单来说就是先保证业务的正常使用，即先扛住，再来优化。因为在复杂的优化工作交付之前，交互中故障模式的数量早就足以磨灭人们的信心。</p>
+<ol>
+<li>排队机制<br>游戏满负荷时，给新来的用户弹出提示语“服务器已满，您前方有XXX个玩家在排队。服务器会帮你自动登录，请您耐心等候”。游戏满负荷时，让新进的玩家定向另一款小游戏去，让玩家在娱乐中等待。</li>
+<li>降压<br>QQ相册。原来的方案是用户浏览照片，没按下一张之前就会预加载下张照片，以便提升用户体验。后来发现在高峰期，带宽不够用，用户叫苦连连。现在改为在18:00-20:00时段，取消自动加载照片功能。很快消去了这个封尖。</li>
+<li>运营扛法<br>当初QQ幻想想收费，玩15分钟扣1个q点。账户系统时不时会core，core了以后公司就不能收钱了。但是core的原因一时又没找到。解决的办法是添加监控脚本，监控到程序不在了就拉起。</li>
+</ol>
+<h3 id="干干净净"><a href="#干干净净" class="headerlink" title="干干净净"></a>干干净净</h3><p>干干净净可以说是开发人员的一个编程态度。</p>
+<ol>
+<li>干干净净对产品而言，我们经常会看到很多产品从初期简单清晰的功能规划，不断叠加产品逻辑、不断推出新的功能、给用户更多更全的特性入口。而这些不断叠加的逻辑、功能、特性，是否是用户所真正所需要的，往往会被忽视，所以我们需要干干净净的态度对待产品，善于用减法的思路对待产品。</li>
+<li>干干净净对架构而言，很多产品设计之初的架构都比较容易做到清晰高效，而运营过程中，为了应对一些临时的活动，或针对一些初期未考虑到的特殊情况，等等，新的差异化于初期架构因素会不断被引入，架构层次及定位逐渐不再清晰，最终很大程度上造成架构效率的降低。</li>
+<li>干干净净对开发而言，我们会看到在开发不断交接更替的情况下，程序中会不断有带有个人风格的代码库、中间件等被引入，在长期发展情况下，不及时清理干净，最终会变得臃肿而难以承接。</li>
+<li>干干净净对运营而言，高效的运营需要清晰的运营架构和有序明了的运营环境，实际工作中如因为交替等因素，会造成运营环境中的脚本、目录，甚至进程、端口处于无序的状态，这些都会给后续的运营工作带来很大的风险和低效。</li>
+</ol>
+<h3 id="边重构边生活"><a href="#边重构边生活" class="headerlink" title="边重构边生活"></a>边重构边生活</h3><p>随着业务的发展：<br>系统变得复杂，功能更加强大；<br>服务器&#x2F;带宽&#x2F;成本增加；<br>运营环境如千丝万缕，运维难度增加；<br>代码风格不一；<br>用户数量级不断增加……<br>这些因素，当其发展到某个量级时，会变得臃肿不堪，耗费相当的人力成本和服务器资源，也难以保障服务质量。这就要求我们：要有勇气和自信重构服务，提供更先进更优秀的系统。</p>
+<h2 id="海量服务之道附图"><a href="#海量服务之道附图" class="headerlink" title="海量服务之道附图"></a>海量服务之道附图</h2><p><img src="/../../images/%E6%9E%B6%E6%9E%84/1.png"></p>
+<p>本文转载自：<a target="_blank" rel="noopener" href="https://baozh.github.io/2015-12/tencent-massive-service-discipline/">《解密腾讯海量服务之道》讲座笔记</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E6%9E%B6%E6%9E%84/" rel="tag"><i class="fa fa-tag"></i> 架构</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/07/20/hbase/HBase%E9%A2%91%E7%B9%81%E9%87%8D%E5%90%AF/" rel="prev" title="新搭HBase故障处理记录">
+                  <i class="fa fa-chevron-left"></i> 新搭HBase故障处理记录
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/07/29/%E6%9E%B6%E6%9E%84/%E4%BA%BF%E7%BA%A7%E6%B5%81%E9%87%8F%E6%9E%B6%E6%9E%84%E4%B9%8B%E4%B8%80%EF%BC%9A%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E5%8E%9F%E5%88%99/" rel="next" title="亿级流量架构之一：系统架构原则">
+                  亿级流量架构之一：系统架构原则 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">乡间小鹿</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>
