@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.2.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha256-DfWjNxDkM94fVBWx1H5BMMp0Zq7luBlV8QRcSES7s+0=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"wdzaslzy.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.12.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="在实际查询中，OpenTSDB查询性能很差，时间段一长，OpenTSDB耗时就会延长。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OpenTSDB查询性能优化">
+<meta property="og:url" content="http://wdzaslzy.github.io/2022/08/31/other/OpenTSDB%E6%9F%A5%E8%AF%A2%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/index.html">
+<meta property="og:site_name" content="大数据架构之道">
+<meta property="og:description" content="在实际查询中，OpenTSDB查询性能很差，时间段一长，OpenTSDB耗时就会延长。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/other/20220831113333.png">
+<meta property="article:published_time" content="2022-08-31T02:42:07.000Z">
+<meta property="article:modified_time" content="2022-08-31T06:43:55.747Z">
+<meta property="article:author" content="乡间小鹿">
+<meta property="article:tag" content="性能调优">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://wdzaslzy.github.io/images/other/20220831113333.png">
+
+
+<link rel="canonical" href="http://wdzaslzy.github.io/2022/08/31/other/OpenTSDB%E6%9F%A5%E8%AF%A2%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://wdzaslzy.github.io/2022/08/31/other/OpenTSDB%E6%9F%A5%E8%AF%A2%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/","path":"2022/08/31/other/OpenTSDB查询性能优化/","title":"OpenTSDB查询性能优化"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>OpenTSDB查询性能优化 | 大数据架构之道</title>
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">大数据架构之道</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-说说"><a href="/shuoshuo/" rel="section"><i class="fa fa-calendar fa-fw"></i>说说</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#OpenTSDB%E6%9F%A5%E8%AF%A2%E6%B5%81%E7%A8%8B"><span class="nav-number">2.</span> <span class="nav-text">OpenTSDB查询流程</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="乡间小鹿"
+      src="/images/head.jpg">
+  <p class="site-author-name" itemprop="name">乡间小鹿</p>
+  <div class="site-description" itemprop="description">每一个不曾起舞的日子都是对生命的辜负</div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">37</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://wdzaslzy.github.io/2022/08/31/other/OpenTSDB%E6%9F%A5%E8%AF%A2%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/head.jpg">
+      <meta itemprop="name" content="乡间小鹿">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="大数据架构之道">
+      <meta itemprop="description" content="每一个不曾起舞的日子都是对生命的辜负">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="OpenTSDB查询性能优化 | 大数据架构之道">
+      <meta itemprop="description" content="在实际查询中，OpenTSDB查询性能很差，时间段一长，OpenTSDB耗时就会延长。">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          OpenTSDB查询性能优化
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+      
+
+      <time title="创建时间：2022-08-31 10:42:07 / 修改时间：14:43:55" itemprop="dateCreated datePublished" datetime="2022-08-31T10:42:07+08:00">2022-08-31</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E9%9A%8F%E4%BE%BF%E4%B8%80%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">随便一记</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+            <div class="post-description">在实际查询中，OpenTSDB查询性能很差，时间段一长，OpenTSDB耗时就会延长。</div>
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>OpenTSDB + HBase是一个比较常用的时序数据库。因为OpenTSDB长时间不维护，里面遗留着很多问题都没有解决。例如OpenTSDB的查询性能。查询量一增加，OpenTSDB查询就慢。</p>
+<h2 id="OpenTSDB查询流程"><a href="#OpenTSDB查询流程" class="headerlink" title="OpenTSDB查询流程"></a>OpenTSDB查询流程</h2><p>为了解决性能问题，需要阅读OpenTSDB源码。OpenTSDB的查询基本流程图如下：</p>
+<p><img src="/../../images/other/20220831113333.png"></p>
+<p>从流程图上可以看出，tsdb在进行MultiGet查询时，重复发了两遍。在没有缓存的情况下，是串行发送的GetRequest。我们来看下它的调用流程：</p>
+<p>TsdbQuery发起查询请求</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> Deferred&lt;DataPoints[]&gt; runAsync() <span class="keyword">throws</span> HBaseException &#123;</span><br><span class="line">    Deferred&lt;DataPoints[]&gt; result = <span class="literal">null</span>;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">this</span>.use_multi_gets &amp;&amp; <span class="built_in">this</span>.override_multi_get) &#123;</span><br><span class="line">        <span class="comment">// tsdb官网并没有开启multi_get请求，但是我调整了它的逻辑，使它支持了multi_get</span></span><br><span class="line">        result = <span class="built_in">this</span>.findSpansWithMultiGetter().addCallback(<span class="keyword">new</span> <span class="title class_">TsdbQuery</span>.GroupByAndAggregateCB());</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        result = <span class="built_in">this</span>.findSpans().addCallback(<span class="keyword">new</span> <span class="title class_">TsdbQuery</span>.GroupByAndAggregateCB());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">this</span>.rollup_usage != <span class="literal">null</span> &amp;&amp; <span class="built_in">this</span>.rollup_usage.fallback()) &#123;</span><br><span class="line">        result.addCallback(<span class="keyword">new</span> <span class="title class_">TsdbQuery</span>.FallbackRollupOnEmptyResult());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>MultiGetQuery中的fetch逻辑：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">startFetch</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>.prepareConcurrentMultiGetTasks();</span><br><span class="line">    <span class="built_in">this</span>.fetch_start_time = System.currentTimeMillis();</span><br><span class="line">    <span class="keyword">if</span> (LOG.isDebugEnabled()) &#123;</span><br><span class="line">        LOG.debug(<span class="string">&quot;Start to fetch data using multiget, there will be &quot;</span> + <span class="built_in">this</span>.multi_get_wait_cnt + <span class="string">&quot; multigets to call&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> <span class="variable">con_idx</span> <span class="operator">=</span> <span class="number">0</span>; con_idx &lt; <span class="built_in">this</span>.concurrency_multi_get; ++con_idx) &#123;</span><br><span class="line">        List&lt;MultiGetQuery.MultiGetTask&gt; con_mul_get_tasks = (List)<span class="built_in">this</span>.multi_get_tasks.get(con_idx);</span><br><span class="line">        <span class="type">int</span> <span class="variable">task_index</span> <span class="operator">=</span> ((AtomicInteger)<span class="built_in">this</span>.multi_get_indexs.get(con_idx)).incrementAndGet();</span><br><span class="line">        <span class="keyword">if</span> (task_index &lt; con_mul_get_tasks.size()) &#123;</span><br><span class="line">            MultiGetQuery.<span class="type">MultiGetTask</span> <span class="variable">task</span> <span class="operator">=</span> (MultiGetQuery.MultiGetTask)con_mul_get_tasks.get(task_index);</span><br><span class="line">            MultiGetQuery.<span class="type">MulGetCB</span> <span class="variable">mgcb</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">MultiGetQuery</span>.MulGetCB(con_idx, task.getTSUIDs(), task.getGets());</span><br><span class="line">            <span class="comment">// 将一批get_request打包成一个MultiAction，进行fetch</span></span><br><span class="line">            mgcb.fetch();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> List&lt;Deferred&lt;GetResultOrException&gt;&gt; <span class="title function_">multiGet</span><span class="params">(List&lt;GetRequest&gt; requests)</span> &#123;</span><br><span class="line">    List&lt;Deferred&lt;GetResultOrException&gt;&gt; result_deferreds = <span class="keyword">new</span> <span class="title class_">ArrayList</span>(requests.size());</span><br><span class="line">    Map&lt;RegionClient, MultiAction&gt; batch_by_region = <span class="keyword">new</span> <span class="title class_">HashMap</span>();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 核心处</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; requests.size(); ++i) &#123;</span><br><span class="line">        <span class="type">GetRequest</span> <span class="variable">request</span> <span class="operator">=</span> (GetRequest)requests.get(i);</span><br><span class="line">        <span class="type">byte</span>[] table = request.table;</span><br><span class="line">        <span class="type">byte</span>[] key = request.key;</span><br><span class="line">        <span class="type">RegionInfo</span> <span class="variable">region</span> <span class="operator">=</span> <span class="built_in">this</span>.getRegion(table, key);</span><br><span class="line">        <span class="type">RegionClient</span> <span class="variable">client</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">if</span> (region != <span class="literal">null</span>) &#123;</span><br><span class="line">            client = Bytes.equals(region.table(), <span class="built_in">this</span>.split_meta ? HBASE98_ROOT_REGION : ROOT) ? <span class="built_in">this</span>.rootregion : (RegionClient)<span class="built_in">this</span>.region2client.get(region);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (client != <span class="literal">null</span> &amp;&amp; client.isAlive()) &#123;</span><br><span class="line">            request.setRegion(region);</span><br><span class="line">            <span class="type">MultiAction</span> <span class="variable">batch</span> <span class="operator">=</span> (MultiAction)batch_by_region.get(client);</span><br><span class="line">            <span class="keyword">if</span> (batch == <span class="literal">null</span>) &#123;</span><br><span class="line">                batch = <span class="keyword">new</span> <span class="title class_">MultiAction</span>();</span><br><span class="line">                batch_by_region.put(client, batch);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            batch.add(request);</span><br><span class="line">            result_deferreds.add(request.getDeferred().addBoth(MUL_GOT_ONE));</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// 核心处，如果上面缓存中没有Region，则在该处发送rpc请求，获取region</span></span><br><span class="line">            result_deferreds.add(<span class="built_in">this</span>.sendRpcToRegion(request).addBoth(MUL_GOT_ONE));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="type">Iterator</span> <span class="variable">var11</span> <span class="operator">=</span> batch_by_region.entrySet().iterator();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 针对上面获取的Region，进行分组，确保一批request在同一个RS下</span></span><br><span class="line">    <span class="keyword">while</span>(var11.hasNext()) &#123;</span><br><span class="line">        Entry&lt;RegionClient, MultiAction&gt; entry = (Entry)var11.next();</span><br><span class="line">        <span class="type">MultiAction</span> <span class="variable">request</span> <span class="operator">=</span> (MultiAction)entry.getValue();</span><br><span class="line">        Deferred&lt;Object&gt; d = request.getDeferred();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">MultiActionCallback</span> <span class="keyword">implements</span> <span class="title class_">Callback</span>&lt;Object, Object&gt; &#123;</span><br><span class="line">            <span class="keyword">final</span> MultiAction request;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">public</span> <span class="title function_">MultiActionCallback</span><span class="params">(MultiAction request)</span> &#123;</span><br><span class="line">                <span class="built_in">this</span>.request = request;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">public</span> Object <span class="title function_">call</span><span class="params">(Object resp)</span> &#123;</span><br><span class="line">                <span class="comment">// 请求处理完之后的回调</span></span><br><span class="line">                <span class="keyword">if</span> (!(resp <span class="keyword">instanceof</span> Response)) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (resp <span class="keyword">instanceof</span> BatchableRpc) &#123;</span><br><span class="line">                        <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">                    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (resp <span class="keyword">instanceof</span> Exception) &#123;</span><br><span class="line">                        <span class="keyword">return</span> <span class="built_in">this</span>.handleException((Exception)resp);</span><br><span class="line">                    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">InvalidResponseException</span>(Response.class, resp);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    <span class="type">Response</span> <span class="variable">response</span> <span class="operator">=</span> (Response)resp;</span><br><span class="line">                    ArrayList&lt;BatchableRpc&gt; batch = <span class="built_in">this</span>.request.batch();</span><br><span class="line">                    <span class="type">int</span> <span class="variable">n</span> <span class="operator">=</span> batch.size();</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">for</span>(<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; n; ++i) &#123;</span><br><span class="line">                        <span class="type">BatchableRpc</span> <span class="variable">rpc</span> <span class="operator">=</span> (BatchableRpc)batch.get(i);</span><br><span class="line">                        <span class="type">Object</span> <span class="variable">r</span> <span class="operator">=</span> response.result(i);</span><br><span class="line">                        <span class="keyword">if</span> (r <span class="keyword">instanceof</span> RecoverableException) &#123;</span><br><span class="line">                            <span class="keyword">if</span> (r <span class="keyword">instanceof</span> NotServingRegionException || r <span class="keyword">instanceof</span> RegionMovedException || r <span class="keyword">instanceof</span> RegionServerStoppedException) &#123;</span><br><span class="line">                                <span class="keyword">try</span> &#123;</span><br><span class="line">                                    HBaseClient.<span class="built_in">this</span>.handleNSRE(rpc, rpc.getRegion().name(), (NotServingRegionException)r);</span><br><span class="line">                                &#125; <span class="keyword">catch</span> (RuntimeException var9) &#123;</span><br><span class="line">                                    HBaseClient.LOG.error(<span class="string">&quot;Unexpected exception processing NSRE for RPC &quot;</span> + rpc, var9);</span><br><span class="line">                                    rpc.callback(var9);</span><br><span class="line">                                &#125;</span><br><span class="line">                            &#125;</span><br><span class="line">                        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                            rpc.callback(r);</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">private</span> Object <span class="title function_">handleException</span><span class="params">(Exception e)</span> &#123;</span><br><span class="line">                <span class="comment">// ... 异常处理代码省略</span></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">public</span> String <span class="title function_">toString</span><span class="params">()</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="string">&quot;multi-action response&quot;</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">		</span><br><span class="line">        <span class="comment">// 将一个RS下的请求打包发送至HBase</span></span><br><span class="line">        d.addBoth(<span class="keyword">new</span> <span class="title class_">MultiActionCallback</span>(request));</span><br><span class="line">        ((RegionClient)entry.getKey()).sendRpc(request);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> result_deferreds;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>上面关注的两个点，一个是遍历每个Request时发送的rpc，另一个是打包以后发送的一批rpc。我们先看遍历时，rpc的处理过程。</p>
+<p>sendRpcToRegion</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line">Deferred&lt;Object&gt; <span class="title function_">sendRpcToRegion</span><span class="params">(<span class="keyword">final</span> HBaseRpc request)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">this</span>.cannotRetryRequest(request)) &#123;</span><br><span class="line">        <span class="keyword">return</span> tooManyAttempts(request, (HBaseException)<span class="literal">null</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        ++request.attempt;</span><br><span class="line">        <span class="type">byte</span>[] table = request.table;</span><br><span class="line">        <span class="type">byte</span>[] key = request.key;</span><br><span class="line">        <span class="type">RegionInfo</span> <span class="variable">region</span> <span class="operator">=</span> <span class="built_in">this</span>.getRegion(table, key);</span><br><span class="line">        <span class="comment">// 第一次请求，该处region为空，此处逻辑不会走到。</span></span><br><span class="line">        <span class="keyword">if</span> (region != <span class="literal">null</span>) &#123;</span><br><span class="line">            Deferred d;</span><br><span class="line">            <span class="keyword">if</span> (knownToBeNSREd(region)) &#123;</span><br><span class="line">                <span class="type">NotServingRegionException</span> <span class="variable">nsre</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NotServingRegionException</span>(<span class="string">&quot;Region known to be unavailable&quot;</span>, request);</span><br><span class="line">                d = request.getDeferred();</span><br><span class="line">                <span class="built_in">this</span>.handleNSRE(request, region.name(), nsre);</span><br><span class="line">                <span class="keyword">return</span> d;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="type">RegionClient</span> <span class="variable">client</span> <span class="operator">=</span> <span class="built_in">this</span>.clientFor(region);</span><br><span class="line">            <span class="keyword">if</span> (client != <span class="literal">null</span> &amp;&amp; client.isAlive()) &#123;</span><br><span class="line">                request.setRegion(region);</span><br><span class="line">                d = request.getDeferred();</span><br><span class="line">                client.sendRpc(request);</span><br><span class="line">                <span class="keyword">return</span> d;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// region获取后的回调函数，此处是发送单个GetRequest至HBase的地方</span></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">RetryRpc</span> <span class="keyword">implements</span> <span class="title class_">Callback</span>&lt;Deferred&lt;Object&gt;, Object&gt; &#123;</span><br><span class="line">            RetryRpc() &#123;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">public</span> Deferred&lt;Object&gt; <span class="title function_">call</span><span class="params">(Object arg)</span> &#123;</span><br><span class="line">                <span class="keyword">if</span> (arg <span class="keyword">instanceof</span> NonRecoverableException) &#123;</span><br><span class="line">                    <span class="type">HBaseException</span> <span class="variable">e</span> <span class="operator">=</span> (NonRecoverableException)arg;</span><br><span class="line">                    <span class="keyword">if</span> (e <span class="keyword">instanceof</span> HasFailedRpcException &amp;&amp; ((HasFailedRpcException)e).getFailedRpc() != request) &#123;</span><br><span class="line">                        e = ((HBaseException)e).make(e, request);</span><br><span class="line">                    &#125;</span><br><span class="line"></span><br><span class="line">                    request.callback(e);</span><br><span class="line">                    <span class="keyword">return</span> Deferred.fromError((Exception)e);</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    <span class="comment">// 当请求结束后，发送了一个request的rpc请求，此处就是影响慢查询的地方</span></span><br><span class="line">                    <span class="keyword">return</span> HBaseClient.<span class="built_in">this</span>.sendRpcToRegion(request);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">public</span> String <span class="title function_">toString</span><span class="params">()</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="string">&quot;retry RPC&quot;</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">this</span>.locateRegion(request, table, key).addBothDeferring(<span class="keyword">new</span> <span class="title class_">RetryRpc</span>());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以上时遍历GetRequest时，串行发送的request，当把它处理完之后，会打包进行发生一批request。</p>
+<p>RegionClient中，真实发送rpc请求。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> <span class="title function_">sendRpc</span><span class="params">(HBaseRpc rpc)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">this</span>.chan != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (rpc <span class="keyword">instanceof</span> BatchableRpc &amp;&amp; !(rpc <span class="keyword">instanceof</span> GetRequest) &amp;&amp; (<span class="built_in">this</span>.server_version &gt;= <span class="number">29</span> || rpc <span class="keyword">instanceof</span> PutRequest)) &#123;</span><br><span class="line">            <span class="type">BatchableRpc</span> <span class="variable">edit</span> <span class="operator">=</span> (BatchableRpc)rpc;</span><br><span class="line">            <span class="keyword">if</span> (edit.canBuffer() &amp;&amp; <span class="built_in">this</span>.hbase_client.getFlushInterval() &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                <span class="built_in">this</span>.bufferEdit(edit);</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="built_in">this</span>.addSingleEditCallbacks(edit);</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (rpc <span class="keyword">instanceof</span> MultiAction) &#123;</span><br><span class="line">            <span class="type">MultiAction</span> <span class="variable">batch</span> <span class="operator">=</span> (MultiAction)rpc;</span><br><span class="line">            <span class="keyword">if</span> (batch.size() == <span class="number">1</span>) &#123;</span><br><span class="line">                rpc = <span class="built_in">this</span>.multiActionToSingleAction(batch);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="built_in">this</span>.hbase_client.num_multi_rpcs.increment();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 序列化以后，写到channel中</span></span><br><span class="line">        <span class="type">ChannelBuffer</span> <span class="variable">serialized</span> <span class="operator">=</span> <span class="built_in">this</span>.encode((HBaseRpc)rpc);</span><br><span class="line">        <span class="keyword">if</span> (serialized == <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="type">Channel</span> <span class="variable">chan</span> <span class="operator">=</span> <span class="built_in">this</span>.chan;</span><br><span class="line">        <span class="keyword">if</span> (chan != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (<span class="built_in">this</span>.check_write_status &amp;&amp; !chan.isWritable()) &#123;</span><br><span class="line">                ((HBaseRpc)rpc).callback(<span class="keyword">new</span> <span class="title class_">PleaseThrottleException</span>(<span class="string">&quot;Region client [&quot;</span> + <span class="built_in">this</span> + <span class="string">&quot; ] channel is not writeable.&quot;</span>, (HBaseException)<span class="literal">null</span>, (HBaseRpc)rpc, ((HBaseRpc)rpc).getDeferred()));</span><br><span class="line">                <span class="built_in">this</span>.removeRpc((HBaseRpc)rpc, <span class="literal">false</span>);</span><br><span class="line">                <span class="built_in">this</span>.writes_blocked.incrementAndGet();</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            ((HBaseRpc)rpc).enqueueTimeout(<span class="built_in">this</span>);</span><br><span class="line">            Channels.write(chan, serialized);</span><br><span class="line">            <span class="built_in">this</span>.rpcs_sent.incrementAndGet();</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="type">boolean</span> <span class="variable">tryagain</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line">    <span class="type">boolean</span> dead;</span><br><span class="line">    <span class="keyword">synchronized</span>(<span class="built_in">this</span>) &#123;</span><br><span class="line">        dead = <span class="built_in">this</span>.dead;</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">this</span>.chan != <span class="literal">null</span>) &#123;</span><br><span class="line">            tryagain = <span class="literal">true</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!dead) &#123;</span><br><span class="line">            <span class="keyword">if</span> (<span class="built_in">this</span>.pending_rpcs == <span class="literal">null</span>) &#123;</span><br><span class="line">                <span class="built_in">this</span>.pending_rpcs = <span class="keyword">new</span> <span class="title class_">ArrayList</span>();</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (<span class="built_in">this</span>.pending_limit &gt; <span class="number">0</span> &amp;&amp; <span class="built_in">this</span>.pending_rpcs.size() &gt;= <span class="built_in">this</span>.pending_limit) &#123;</span><br><span class="line">                ((HBaseRpc)rpc).callback(<span class="keyword">new</span> <span class="title class_">PleaseThrottleException</span>(<span class="string">&quot;Exceeded the pending RPC limit&quot;</span>, (HBaseException)<span class="literal">null</span>, (HBaseRpc)rpc, ((HBaseRpc)rpc).getDeferred()));</span><br><span class="line">                <span class="built_in">this</span>.pending_breached.incrementAndGet();</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="built_in">this</span>.pending_rpcs.add(rpc);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!dead) &#123;</span><br><span class="line">        <span class="keyword">if</span> (tryagain) &#123;</span><br><span class="line">            <span class="built_in">this</span>.sendRpc((HBaseRpc)rpc);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            LOG.debug(<span class="string">&quot;RPC queued: &#123;&#125;&quot;</span>, rpc);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (((HBaseRpc)rpc).getRegion() != <span class="literal">null</span> &amp;&amp; !((HBaseRpc)rpc).failfast()) &#123;</span><br><span class="line">            <span class="built_in">this</span>.hbase_client.sendRpcToRegion((HBaseRpc)rpc);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            ((HBaseRpc)rpc).callback(<span class="keyword">new</span> <span class="title class_">ConnectionResetException</span>((Channel)<span class="literal">null</span>));</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/" rel="tag"><i class="fa fa-tag"></i> 性能调优</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/08/25/%E6%9E%B6%E6%9E%84/%E4%BA%BF%E7%BA%A7%E6%B5%81%E9%87%8F%E6%9E%B6%E6%9E%84%E4%B9%8B%E4%B8%89%EF%BC%9A%E9%AB%98%E5%B9%B6%E5%8F%91%E7%AD%96%E7%95%A5/" rel="prev" title="亿级流量架构之三：高并发策略">
+                  <i class="fa fa-chevron-left"></i> 亿级流量架构之三：高并发策略
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">乡间小鹿</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

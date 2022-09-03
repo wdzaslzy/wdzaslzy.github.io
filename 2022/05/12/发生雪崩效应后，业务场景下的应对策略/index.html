@@ -18,12 +18,12 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha256-DfWjNxDkM94fVBWx1H5BMMp0Zq7luBlV8QRcSES7s+0=" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
 
-<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.12.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+<script class="next-config" data-name="main" type="application/json">{"hostname":"wdzaslzy.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.12.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
 
     <meta name="description" content="背景 QE是一个查询代理服务。它包含实时查询（redis）、历史查询（tsdb）和 数据库查询（cube）。其中，实时查询的特点是：查询比较重要 查询量小 响应时间短 查询频率相对稳定">
 <meta property="og:type" content="article">
 <meta property="og:title" content="发生雪崩效应后，业务场景下的应对策略">
-<meta property="og:url" content="http://example.com/2022/05/12/%E5%8F%91%E7%94%9F%E9%9B%AA%E5%B4%A9%E6%95%88%E5%BA%94%E5%90%8E%EF%BC%8C%E4%B8%9A%E5%8A%A1%E5%9C%BA%E6%99%AF%E4%B8%8B%E7%9A%84%E5%BA%94%E5%AF%B9%E7%AD%96%E7%95%A5/index.html">
+<meta property="og:url" content="http://wdzaslzy.github.io/2022/05/12/%E5%8F%91%E7%94%9F%E9%9B%AA%E5%B4%A9%E6%95%88%E5%BA%94%E5%90%8E%EF%BC%8C%E4%B8%9A%E5%8A%A1%E5%9C%BA%E6%99%AF%E4%B8%8B%E7%9A%84%E5%BA%94%E5%AF%B9%E7%AD%96%E7%95%A5/index.html">
 <meta property="og:site_name" content="大数据架构之道">
 <meta property="og:description" content="背景 QE是一个查询代理服务。它包含实时查询（redis）、历史查询（tsdb）和 数据库查询（cube）。其中，实时查询的特点是：查询比较重要 查询量小 响应时间短 查询频率相对稳定">
 <meta property="og:locale" content="zh_CN">
@@ -37,11 +37,11 @@
 <meta name="twitter:image" content="https://alidocs.oss-cn-zhangjiakou.aliyuncs.com/res/MeYVOLEVLmawlpz2/img/506a5e1f-ea9a-4084-9260-58c3b16559cc.png">
 
 
-<link rel="canonical" href="http://example.com/2022/05/12/%E5%8F%91%E7%94%9F%E9%9B%AA%E5%B4%A9%E6%95%88%E5%BA%94%E5%90%8E%EF%BC%8C%E4%B8%9A%E5%8A%A1%E5%9C%BA%E6%99%AF%E4%B8%8B%E7%9A%84%E5%BA%94%E5%AF%B9%E7%AD%96%E7%95%A5/">
+<link rel="canonical" href="http://wdzaslzy.github.io/2022/05/12/%E5%8F%91%E7%94%9F%E9%9B%AA%E5%B4%A9%E6%95%88%E5%BA%94%E5%90%8E%EF%BC%8C%E4%B8%9A%E5%8A%A1%E5%9C%BA%E6%99%AF%E4%B8%8B%E7%9A%84%E5%BA%94%E5%AF%B9%E7%AD%96%E7%95%A5/">
 
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://example.com/2022/05/12/%E5%8F%91%E7%94%9F%E9%9B%AA%E5%B4%A9%E6%95%88%E5%BA%94%E5%90%8E%EF%BC%8C%E4%B8%9A%E5%8A%A1%E5%9C%BA%E6%99%AF%E4%B8%8B%E7%9A%84%E5%BA%94%E5%AF%B9%E7%AD%96%E7%95%A5/","path":"2022/05/12/发生雪崩效应后，业务场景下的应对策略/","title":"发生雪崩效应后，业务场景下的应对策略"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://wdzaslzy.github.io/2022/05/12/%E5%8F%91%E7%94%9F%E9%9B%AA%E5%B4%A9%E6%95%88%E5%BA%94%E5%90%8E%EF%BC%8C%E4%B8%9A%E5%8A%A1%E5%9C%BA%E6%99%AF%E4%B8%8B%E7%9A%84%E5%BA%94%E5%AF%B9%E7%AD%96%E7%95%A5/","path":"2022/05/12/发生雪崩效应后，业务场景下的应对策略/","title":"发生雪崩效应后，业务场景下的应对策略"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
 <title>发生雪崩效应后，业务场景下的应对策略 | 大数据架构之道</title>
@@ -134,7 +134,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">35</span>
+          <span class="site-state-item-count">37</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -184,7 +184,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2022/05/12/%E5%8F%91%E7%94%9F%E9%9B%AA%E5%B4%A9%E6%95%88%E5%BA%94%E5%90%8E%EF%BC%8C%E4%B8%9A%E5%8A%A1%E5%9C%BA%E6%99%AF%E4%B8%8B%E7%9A%84%E5%BA%94%E5%AF%B9%E7%AD%96%E7%95%A5/">
+    <link itemprop="mainEntityOfPage" href="http://wdzaslzy.github.io/2022/05/12/%E5%8F%91%E7%94%9F%E9%9B%AA%E5%B4%A9%E6%95%88%E5%BA%94%E5%90%8E%EF%BC%8C%E4%B8%9A%E5%8A%A1%E5%9C%BA%E6%99%AF%E4%B8%8B%E7%9A%84%E5%BA%94%E5%AF%B9%E7%AD%96%E7%95%A5/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/head.jpg">

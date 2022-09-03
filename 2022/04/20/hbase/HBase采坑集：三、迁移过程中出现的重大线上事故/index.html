@@ -18,12 +18,12 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha256-DfWjNxDkM94fVBWx1H5BMMp0Zq7luBlV8QRcSES7s+0=" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
 
-<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.12.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+<script class="next-config" data-name="main" type="application/json">{"hostname":"wdzaslzy.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.12.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
 
     <meta name="description" content="上一篇记录了在进行bulkload编码时遇到的坑，这一篇记录一下，实际执行过程中遇到的坑。采坑集 采坑1——单次load太多hfile后，hmaster飘红 现象 单次load了太多的hfile，每个region接近100个hfile">
 <meta property="og:type" content="article">
 <meta property="og:title" content="HBase采坑集：三、迁移过程中出现的重大线上事故">
-<meta property="og:url" content="http://example.com/2022/04/20/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%B8%89%E3%80%81%E8%BF%81%E7%A7%BB%E8%BF%87%E7%A8%8B%E4%B8%AD%E5%87%BA%E7%8E%B0%E7%9A%84%E9%87%8D%E5%A4%A7%E7%BA%BF%E4%B8%8A%E4%BA%8B%E6%95%85/index.html">
+<meta property="og:url" content="http://wdzaslzy.github.io/2022/04/20/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%B8%89%E3%80%81%E8%BF%81%E7%A7%BB%E8%BF%87%E7%A8%8B%E4%B8%AD%E5%87%BA%E7%8E%B0%E7%9A%84%E9%87%8D%E5%A4%A7%E7%BA%BF%E4%B8%8A%E4%BA%8B%E6%95%85/index.html">
 <meta property="og:site_name" content="大数据架构之道">
 <meta property="og:description" content="上一篇记录了在进行bulkload编码时遇到的坑，这一篇记录一下，实际执行过程中遇到的坑。采坑集 采坑1——单次load太多hfile后，hmaster飘红 现象 单次load了太多的hfile，每个region接近100个hfile">
 <meta property="og:locale" content="zh_CN">
@@ -46,11 +46,11 @@
 <meta name="twitter:image" content="https://alidocs.oss-cn-zhangjiakou.aliyuncs.com/res/av9kqDEBQAJNOVxe/img/2ef65772-4152-4b51-ba5a-783c73dcbb1d.png">
 
 
-<link rel="canonical" href="http://example.com/2022/04/20/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%B8%89%E3%80%81%E8%BF%81%E7%A7%BB%E8%BF%87%E7%A8%8B%E4%B8%AD%E5%87%BA%E7%8E%B0%E7%9A%84%E9%87%8D%E5%A4%A7%E7%BA%BF%E4%B8%8A%E4%BA%8B%E6%95%85/">
+<link rel="canonical" href="http://wdzaslzy.github.io/2022/04/20/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%B8%89%E3%80%81%E8%BF%81%E7%A7%BB%E8%BF%87%E7%A8%8B%E4%B8%AD%E5%87%BA%E7%8E%B0%E7%9A%84%E9%87%8D%E5%A4%A7%E7%BA%BF%E4%B8%8A%E4%BA%8B%E6%95%85/">
 
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://example.com/2022/04/20/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%B8%89%E3%80%81%E8%BF%81%E7%A7%BB%E8%BF%87%E7%A8%8B%E4%B8%AD%E5%87%BA%E7%8E%B0%E7%9A%84%E9%87%8D%E5%A4%A7%E7%BA%BF%E4%B8%8A%E4%BA%8B%E6%95%85/","path":"2022/04/20/hbase/HBase采坑集：三、迁移过程中出现的重大线上事故/","title":"HBase采坑集：三、迁移过程中出现的重大线上事故"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://wdzaslzy.github.io/2022/04/20/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%B8%89%E3%80%81%E8%BF%81%E7%A7%BB%E8%BF%87%E7%A8%8B%E4%B8%AD%E5%87%BA%E7%8E%B0%E7%9A%84%E9%87%8D%E5%A4%A7%E7%BA%BF%E4%B8%8A%E4%BA%8B%E6%95%85/","path":"2022/04/20/hbase/HBase采坑集：三、迁移过程中出现的重大线上事故/","title":"HBase采坑集：三、迁移过程中出现的重大线上事故"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
 <title>HBase采坑集：三、迁移过程中出现的重大线上事故 | 大数据架构之道</title>
@@ -143,7 +143,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">35</span>
+          <span class="site-state-item-count">37</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -193,7 +193,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2022/04/20/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%B8%89%E3%80%81%E8%BF%81%E7%A7%BB%E8%BF%87%E7%A8%8B%E4%B8%AD%E5%87%BA%E7%8E%B0%E7%9A%84%E9%87%8D%E5%A4%A7%E7%BA%BF%E4%B8%8A%E4%BA%8B%E6%95%85/">
+    <link itemprop="mainEntityOfPage" href="http://wdzaslzy.github.io/2022/04/20/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%B8%89%E3%80%81%E8%BF%81%E7%A7%BB%E8%BF%87%E7%A8%8B%E4%B8%AD%E5%87%BA%E7%8E%B0%E7%9A%84%E9%87%8D%E5%A4%A7%E7%BA%BF%E4%B8%8A%E4%BA%8B%E6%95%85/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/head.jpg">

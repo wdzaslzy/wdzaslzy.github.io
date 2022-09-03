@@ -18,30 +18,30 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha256-DfWjNxDkM94fVBWx1H5BMMp0Zq7luBlV8QRcSES7s+0=" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
 
-<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.12.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+<script class="next-config" data-name="main" type="application/json">{"hostname":"wdzaslzy.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.12.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
 
     <meta name="description" content="数据是工业时序数据。采集方式是，每个商户每个设备下采集的每个点。这些数据点需要实时查询，也需要历史查询。查询包括云端查询和边缘端查询。实时查询，保存在Redis，历史数据查询，保存在HBase。两者查询互不影响。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="实时数据查询方案设计">
-<meta property="og:url" content="http://example.com/2022/03/01/%E5%AE%9E%E6%97%B6%E6%95%B0%E6%8D%AE%E6%9F%A5%E8%AF%A2%E6%96%B9%E6%A1%88%E8%AE%BE%E8%AE%A1/index.html">
+<meta property="og:url" content="http://wdzaslzy.github.io/2022/03/01/%E5%AE%9E%E6%97%B6%E6%95%B0%E6%8D%AE%E6%9F%A5%E8%AF%A2%E6%96%B9%E6%A1%88%E8%AE%BE%E8%AE%A1/index.html">
 <meta property="og:site_name" content="大数据架构之道">
 <meta property="og:description" content="数据是工业时序数据。采集方式是，每个商户每个设备下采集的每个点。这些数据点需要实时查询，也需要历史查询。查询包括云端查询和边缘端查询。实时查询，保存在Redis，历史数据查询，保存在HBase。两者查询互不影响。">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="http://example.com/images/image-20220301153117628-566a0cd8a8ff4b60b36a25f128eee222.png">
-<meta property="og:image" content="http://example.com/images/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20220301161024-2fc84e90b53b42f2a4ce302be0326691.png">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/image-20220301153117628-566a0cd8a8ff4b60b36a25f128eee222.png">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20220301161024-2fc84e90b53b42f2a4ce302be0326691.png">
 <meta property="article:published_time" content="2022-03-01T07:52:33.613Z">
 <meta property="article:modified_time" content="2022-03-04T07:46:00.615Z">
 <meta property="article:author" content="乡间小鹿">
 <meta property="article:tag" content="性能调优">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://example.com/images/image-20220301153117628-566a0cd8a8ff4b60b36a25f128eee222.png">
+<meta name="twitter:image" content="http://wdzaslzy.github.io/images/image-20220301153117628-566a0cd8a8ff4b60b36a25f128eee222.png">
 
 
-<link rel="canonical" href="http://example.com/2022/03/01/%E5%AE%9E%E6%97%B6%E6%95%B0%E6%8D%AE%E6%9F%A5%E8%AF%A2%E6%96%B9%E6%A1%88%E8%AE%BE%E8%AE%A1/">
+<link rel="canonical" href="http://wdzaslzy.github.io/2022/03/01/%E5%AE%9E%E6%97%B6%E6%95%B0%E6%8D%AE%E6%9F%A5%E8%AF%A2%E6%96%B9%E6%A1%88%E8%AE%BE%E8%AE%A1/">
 
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://example.com/2022/03/01/%E5%AE%9E%E6%97%B6%E6%95%B0%E6%8D%AE%E6%9F%A5%E8%AF%A2%E6%96%B9%E6%A1%88%E8%AE%BE%E8%AE%A1/","path":"2022/03/01/实时数据查询方案设计/","title":"实时数据查询方案设计"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://wdzaslzy.github.io/2022/03/01/%E5%AE%9E%E6%97%B6%E6%95%B0%E6%8D%AE%E6%9F%A5%E8%AF%A2%E6%96%B9%E6%A1%88%E8%AE%BE%E8%AE%A1/","path":"2022/03/01/实时数据查询方案设计/","title":"实时数据查询方案设计"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
 <title>实时数据查询方案设计 | 大数据架构之道</title>
@@ -134,7 +134,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">35</span>
+          <span class="site-state-item-count">37</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -184,7 +184,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2022/03/01/%E5%AE%9E%E6%97%B6%E6%95%B0%E6%8D%AE%E6%9F%A5%E8%AF%A2%E6%96%B9%E6%A1%88%E8%AE%BE%E8%AE%A1/">
+    <link itemprop="mainEntityOfPage" href="http://wdzaslzy.github.io/2022/03/01/%E5%AE%9E%E6%97%B6%E6%95%B0%E6%8D%AE%E6%9F%A5%E8%AF%A2%E6%96%B9%E6%A1%88%E8%AE%BE%E8%AE%A1/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/head.jpg">

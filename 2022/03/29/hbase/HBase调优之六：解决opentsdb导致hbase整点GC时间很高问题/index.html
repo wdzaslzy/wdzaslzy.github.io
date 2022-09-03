@@ -18,38 +18,38 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha256-DfWjNxDkM94fVBWx1H5BMMp0Zq7luBlV8QRcSES7s+0=" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
 
-<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.12.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+<script class="next-config" data-name="main" type="application/json">{"hostname":"wdzaslzy.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.12.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
 
     <meta name="description" content="长时间gc，在部分节点，每个小时，都有一个长时间gc的尖峰。关于G1 GC，对HBase进行进一步改进。对于HBase，我们当前的配置：">
 <meta property="og:type" content="article">
 <meta property="og:title" content="HBase调优之六：解决opentsdb导致hbase整点GC时间很高问题">
-<meta property="og:url" content="http://example.com/2022/03/29/hbase/HBase%E8%B0%83%E4%BC%98%E4%B9%8B%E5%85%AD%EF%BC%9A%E8%A7%A3%E5%86%B3opentsdb%E5%AF%BC%E8%87%B4hbase%E6%95%B4%E7%82%B9GC%E6%97%B6%E9%97%B4%E5%BE%88%E9%AB%98%E9%97%AE%E9%A2%98/index.html">
+<meta property="og:url" content="http://wdzaslzy.github.io/2022/03/29/hbase/HBase%E8%B0%83%E4%BC%98%E4%B9%8B%E5%85%AD%EF%BC%9A%E8%A7%A3%E5%86%B3opentsdb%E5%AF%BC%E8%87%B4hbase%E6%95%B4%E7%82%B9GC%E6%97%B6%E9%97%B4%E5%BE%88%E9%AB%98%E9%97%AE%E9%A2%98/index.html">
 <meta property="og:site_name" content="大数据架构之道">
 <meta property="og:description" content="长时间gc，在部分节点，每个小时，都有一个长时间gc的尖峰。关于G1 GC，对HBase进行进一步改进。对于HBase，我们当前的配置：">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="http://example.com/images/1-5dd609e6aab44e2ba52f94f4153dbb14.png">
-<meta property="og:image" content="http://example.com/images/2-5f452c0fb9b44939899e4798be49b5d1.png">
-<meta property="og:image" content="http://example.com/images/3-d38f29d20d5e41e58f05ebe8e6ae1013.png">
-<meta property="og:image" content="http://example.com/images/4-5cb99bfd48054656a509b146581c09ee.png">
-<meta property="og:image" content="http://example.com/images/5-9add68384d464507acd94f1ac9902d5e.png">
-<meta property="og:image" content="http://example.com/images/6-4449470d540649f3b5030df088713222.png">
-<meta property="og:image" content="http://example.com/images/7-d7d68829d523467080100c8e5cf3d2e4.png">
-<meta property="og:image" content="http://example.com/images/8-e3340b4c022f46fc8c68d777c35812c3.png">
-<meta property="og:image" content="http://example.com/images/9-d4628fb0711b47a1b519ef9e3b20a6f5.png">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/1-5dd609e6aab44e2ba52f94f4153dbb14.png">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/2-5f452c0fb9b44939899e4798be49b5d1.png">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/3-d38f29d20d5e41e58f05ebe8e6ae1013.png">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/4-5cb99bfd48054656a509b146581c09ee.png">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/5-9add68384d464507acd94f1ac9902d5e.png">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/6-4449470d540649f3b5030df088713222.png">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/7-d7d68829d523467080100c8e5cf3d2e4.png">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/8-e3340b4c022f46fc8c68d777c35812c3.png">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/9-d4628fb0711b47a1b519ef9e3b20a6f5.png">
 <meta property="article:published_time" content="2022-03-29T06:05:25.529Z">
 <meta property="article:modified_time" content="2022-03-29T06:36:14.884Z">
 <meta property="article:author" content="乡间小鹿">
 <meta property="article:tag" content="性能调优">
 <meta property="article:tag" content="hbase">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://example.com/images/1-5dd609e6aab44e2ba52f94f4153dbb14.png">
+<meta name="twitter:image" content="http://wdzaslzy.github.io/images/1-5dd609e6aab44e2ba52f94f4153dbb14.png">
 
 
-<link rel="canonical" href="http://example.com/2022/03/29/hbase/HBase%E8%B0%83%E4%BC%98%E4%B9%8B%E5%85%AD%EF%BC%9A%E8%A7%A3%E5%86%B3opentsdb%E5%AF%BC%E8%87%B4hbase%E6%95%B4%E7%82%B9GC%E6%97%B6%E9%97%B4%E5%BE%88%E9%AB%98%E9%97%AE%E9%A2%98/">
+<link rel="canonical" href="http://wdzaslzy.github.io/2022/03/29/hbase/HBase%E8%B0%83%E4%BC%98%E4%B9%8B%E5%85%AD%EF%BC%9A%E8%A7%A3%E5%86%B3opentsdb%E5%AF%BC%E8%87%B4hbase%E6%95%B4%E7%82%B9GC%E6%97%B6%E9%97%B4%E5%BE%88%E9%AB%98%E9%97%AE%E9%A2%98/">
 
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://example.com/2022/03/29/hbase/HBase%E8%B0%83%E4%BC%98%E4%B9%8B%E5%85%AD%EF%BC%9A%E8%A7%A3%E5%86%B3opentsdb%E5%AF%BC%E8%87%B4hbase%E6%95%B4%E7%82%B9GC%E6%97%B6%E9%97%B4%E5%BE%88%E9%AB%98%E9%97%AE%E9%A2%98/","path":"2022/03/29/hbase/HBase调优之六：解决opentsdb导致hbase整点GC时间很高问题/","title":"HBase调优之六：解决opentsdb导致hbase整点GC时间很高问题"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://wdzaslzy.github.io/2022/03/29/hbase/HBase%E8%B0%83%E4%BC%98%E4%B9%8B%E5%85%AD%EF%BC%9A%E8%A7%A3%E5%86%B3opentsdb%E5%AF%BC%E8%87%B4hbase%E6%95%B4%E7%82%B9GC%E6%97%B6%E9%97%B4%E5%BE%88%E9%AB%98%E9%97%AE%E9%A2%98/","path":"2022/03/29/hbase/HBase调优之六：解决opentsdb导致hbase整点GC时间很高问题/","title":"HBase调优之六：解决opentsdb导致hbase整点GC时间很高问题"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
 <title>HBase调优之六：解决opentsdb导致hbase整点GC时间很高问题 | 大数据架构之道</title>
@@ -142,7 +142,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">35</span>
+          <span class="site-state-item-count">37</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -192,7 +192,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2022/03/29/hbase/HBase%E8%B0%83%E4%BC%98%E4%B9%8B%E5%85%AD%EF%BC%9A%E8%A7%A3%E5%86%B3opentsdb%E5%AF%BC%E8%87%B4hbase%E6%95%B4%E7%82%B9GC%E6%97%B6%E9%97%B4%E5%BE%88%E9%AB%98%E9%97%AE%E9%A2%98/">
+    <link itemprop="mainEntityOfPage" href="http://wdzaslzy.github.io/2022/03/29/hbase/HBase%E8%B0%83%E4%BC%98%E4%B9%8B%E5%85%AD%EF%BC%9A%E8%A7%A3%E5%86%B3opentsdb%E5%AF%BC%E8%87%B4hbase%E6%95%B4%E7%82%B9GC%E6%97%B6%E9%97%B4%E5%BE%88%E9%AB%98%E9%97%AE%E9%A2%98/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/head.jpg">

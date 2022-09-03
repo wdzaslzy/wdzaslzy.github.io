@@ -18,32 +18,32 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha256-DfWjNxDkM94fVBWx1H5BMMp0Zq7luBlV8QRcSES7s+0=" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
 
-<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.12.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+<script class="next-config" data-name="main" type="application/json">{"hostname":"wdzaslzy.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.12.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
 
     <meta name="description" content="当我们分析了问题，并改进了新的rowkey结构，那么我们为了做到无缝对接，需要将历史数据进行迁移。迁移历史数据的思路大体为：1. 读取原数据 2. 按新结构生成RowKey 3. 写入新表">
 <meta property="og:type" content="article">
 <meta property="og:title" content="HBase采坑集：二、bulkload编码中的坑">
-<meta property="og:url" content="http://example.com/2022/04/14/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%BA%8C%E3%80%81bulkload%E7%BC%96%E7%A0%81%E4%B8%AD%E7%9A%84%E5%9D%91/index.html">
+<meta property="og:url" content="http://wdzaslzy.github.io/2022/04/14/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%BA%8C%E3%80%81bulkload%E7%BC%96%E7%A0%81%E4%B8%AD%E7%9A%84%E5%9D%91/index.html">
 <meta property="og:site_name" content="大数据架构之道">
 <meta property="og:description" content="当我们分析了问题，并改进了新的rowkey结构，那么我们为了做到无缝对接，需要将历史数据进行迁移。迁移历史数据的思路大体为：1. 读取原数据 2. 按新结构生成RowKey 3. 写入新表">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="http://example.com/images/1-b7ae521d598e4e91a5e3e42b22c3c922.png">
-<meta property="og:image" content="http://example.com/images/2-9b41b25d7d9748fe91f18bcdf308800e.jpg">
-<meta property="og:image" content="http://example.com/images/3-2f96ae7e92ee411cbd1b860d0d96071b.jpg">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/1-b7ae521d598e4e91a5e3e42b22c3c922.png">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/2-9b41b25d7d9748fe91f18bcdf308800e.jpg">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/3-2f96ae7e92ee411cbd1b860d0d96071b.jpg">
 <meta property="article:published_time" content="2022-04-14T02:41:17.444Z">
 <meta property="article:modified_time" content="2022-04-19T07:55:30.739Z">
 <meta property="article:author" content="乡间小鹿">
 <meta property="article:tag" content="hbase">
 <meta property="article:tag" content="采坑集">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://example.com/images/1-b7ae521d598e4e91a5e3e42b22c3c922.png">
+<meta name="twitter:image" content="http://wdzaslzy.github.io/images/1-b7ae521d598e4e91a5e3e42b22c3c922.png">
 
 
-<link rel="canonical" href="http://example.com/2022/04/14/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%BA%8C%E3%80%81bulkload%E7%BC%96%E7%A0%81%E4%B8%AD%E7%9A%84%E5%9D%91/">
+<link rel="canonical" href="http://wdzaslzy.github.io/2022/04/14/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%BA%8C%E3%80%81bulkload%E7%BC%96%E7%A0%81%E4%B8%AD%E7%9A%84%E5%9D%91/">
 
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://example.com/2022/04/14/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%BA%8C%E3%80%81bulkload%E7%BC%96%E7%A0%81%E4%B8%AD%E7%9A%84%E5%9D%91/","path":"2022/04/14/hbase/HBase采坑集：二、bulkload编码中的坑/","title":"HBase采坑集：二、bulkload编码中的坑"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://wdzaslzy.github.io/2022/04/14/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%BA%8C%E3%80%81bulkload%E7%BC%96%E7%A0%81%E4%B8%AD%E7%9A%84%E5%9D%91/","path":"2022/04/14/hbase/HBase采坑集：二、bulkload编码中的坑/","title":"HBase采坑集：二、bulkload编码中的坑"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
 <title>HBase采坑集：二、bulkload编码中的坑 | 大数据架构之道</title>
@@ -136,7 +136,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">35</span>
+          <span class="site-state-item-count">37</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -186,7 +186,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2022/04/14/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%BA%8C%E3%80%81bulkload%E7%BC%96%E7%A0%81%E4%B8%AD%E7%9A%84%E5%9D%91/">
+    <link itemprop="mainEntityOfPage" href="http://wdzaslzy.github.io/2022/04/14/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%BA%8C%E3%80%81bulkload%E7%BC%96%E7%A0%81%E4%B8%AD%E7%9A%84%E5%9D%91/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/head.jpg">

@@ -18,12 +18,12 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha256-DfWjNxDkM94fVBWx1H5BMMp0Zq7luBlV8QRcSES7s+0=" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
 
-<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.12.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+<script class="next-config" data-name="main" type="application/json">{"hostname":"wdzaslzy.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.12.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
 
     <meta name="description" content="当前我们的数据是时间序列数据。由OpenTsdb写入。OpenTsdb在HBase中设计的RowKey格式：metric_time_tagk1_tagv1…tagkn_tagvn这种时间序列的数据，存在一个很严重的问题：数据热点。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="HBase采坑集：一、数据热点问题分析">
-<meta property="og:url" content="http://example.com/2022/04/12/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%B8%80%E3%80%81%E6%95%B0%E6%8D%AE%E7%83%AD%E7%82%B9%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/index.html">
+<meta property="og:url" content="http://wdzaslzy.github.io/2022/04/12/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%B8%80%E3%80%81%E6%95%B0%E6%8D%AE%E7%83%AD%E7%82%B9%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/index.html">
 <meta property="og:site_name" content="大数据架构之道">
 <meta property="og:description" content="当前我们的数据是时间序列数据。由OpenTsdb写入。OpenTsdb在HBase中设计的RowKey格式：metric_time_tagk1_tagv1…tagkn_tagvn这种时间序列的数据，存在一个很严重的问题：数据热点。">
 <meta property="og:locale" content="zh_CN">
@@ -38,11 +38,11 @@
 <meta name="twitter:image" content="https://xlblog.github.io/2021/11/08/HBase%E8%B0%83%E4%BC%98%E4%B9%8B%E4%B8%89%EF%BC%9A%E6%95%B0%E6%8D%AE%E7%83%AD%E7%82%B9%E8%B0%83%E4%BC%98/1.png">
 
 
-<link rel="canonical" href="http://example.com/2022/04/12/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%B8%80%E3%80%81%E6%95%B0%E6%8D%AE%E7%83%AD%E7%82%B9%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/">
+<link rel="canonical" href="http://wdzaslzy.github.io/2022/04/12/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%B8%80%E3%80%81%E6%95%B0%E6%8D%AE%E7%83%AD%E7%82%B9%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/">
 
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://example.com/2022/04/12/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%B8%80%E3%80%81%E6%95%B0%E6%8D%AE%E7%83%AD%E7%82%B9%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/","path":"2022/04/12/hbase/HBase采坑集：一、数据热点问题分析/","title":"HBase采坑集：一、数据热点问题分析"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://wdzaslzy.github.io/2022/04/12/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%B8%80%E3%80%81%E6%95%B0%E6%8D%AE%E7%83%AD%E7%82%B9%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/","path":"2022/04/12/hbase/HBase采坑集：一、数据热点问题分析/","title":"HBase采坑集：一、数据热点问题分析"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
 <title>HBase采坑集：一、数据热点问题分析 | 大数据架构之道</title>
@@ -135,7 +135,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">35</span>
+          <span class="site-state-item-count">37</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -185,7 +185,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2022/04/12/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%B8%80%E3%80%81%E6%95%B0%E6%8D%AE%E7%83%AD%E7%82%B9%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/">
+    <link itemprop="mainEntityOfPage" href="http://wdzaslzy.github.io/2022/04/12/hbase/HBase%E9%87%87%E5%9D%91%E9%9B%86%EF%BC%9A%E4%B8%80%E3%80%81%E6%95%B0%E6%8D%AE%E7%83%AD%E7%82%B9%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/head.jpg">
