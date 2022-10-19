@@ -22,28 +22,28 @@
 
     <meta name="description" content="在实际查询中，OpenTSDB查询性能很差，时间段一长，OpenTSDB耗时就会延长。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="OpenTSDB查询性能优化">
-<meta property="og:url" content="http://wdzaslzy.github.io/2022/08/31/other/OpenTSDB%E6%9F%A5%E8%AF%A2%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/index.html">
+<meta property="og:title" content="OpenTSDB查询过程源码分析">
+<meta property="og:url" content="http://wdzaslzy.github.io/2022/08/31/other/OpenTSDB%E6%9F%A5%E8%AF%A2%E8%BF%87%E7%A8%8B%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/index.html">
 <meta property="og:site_name" content="大数据架构之道">
 <meta property="og:description" content="在实际查询中，OpenTSDB查询性能很差，时间段一长，OpenTSDB耗时就会延长。">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="http://wdzaslzy.github.io/images/other/20220831113333.png">
 <meta property="article:published_time" content="2022-08-31T02:42:07.000Z">
-<meta property="article:modified_time" content="2022-08-31T06:43:55.747Z">
+<meta property="article:modified_time" content="2022-09-09T02:47:15.122Z">
 <meta property="article:author" content="乡间小鹿">
 <meta property="article:tag" content="性能调优">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="http://wdzaslzy.github.io/images/other/20220831113333.png">
 
 
-<link rel="canonical" href="http://wdzaslzy.github.io/2022/08/31/other/OpenTSDB%E6%9F%A5%E8%AF%A2%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/">
+<link rel="canonical" href="http://wdzaslzy.github.io/2022/08/31/other/OpenTSDB%E6%9F%A5%E8%AF%A2%E8%BF%87%E7%A8%8B%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">
 
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://wdzaslzy.github.io/2022/08/31/other/OpenTSDB%E6%9F%A5%E8%AF%A2%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/","path":"2022/08/31/other/OpenTSDB查询性能优化/","title":"OpenTSDB查询性能优化"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://wdzaslzy.github.io/2022/08/31/other/OpenTSDB%E6%9F%A5%E8%AF%A2%E8%BF%87%E7%A8%8B%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/","path":"2022/08/31/other/OpenTSDB查询过程源码分析/","title":"OpenTSDB查询过程源码分析"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>OpenTSDB查询性能优化 | 大数据架构之道</title>
+<title>OpenTSDB查询过程源码分析 | 大数据架构之道</title>
   
 
 
@@ -118,7 +118,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#OpenTSDB%E6%9F%A5%E8%AF%A2%E6%B5%81%E7%A8%8B"><span class="nav-number">2.</span> <span class="nav-text">OpenTSDB查询流程</span></a></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#OpenTSDB%E6%9F%A5%E8%AF%A2%E6%B5%81%E7%A8%8B"><span class="nav-number">2.</span> <span class="nav-text">OpenTSDB查询流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#OpenTsdb%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86%E8%BF%87%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">OpenTsdb请求处理过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A8%8B%E5%BA%8F%E5%85%A5%E5%8F%A3%EF%BC%9ATSDMain-java"><span class="nav-number">3.1.</span> <span class="nav-text">程序入口：TSDMain.java</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%91%E8%B5%B7rpc%E8%AF%B7%E6%B1%82"><span class="nav-number">3.2.</span> <span class="nav-text">发起rpc请求</span></a></li></ol></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -133,18 +133,18 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">37</span>
+          <span class="site-state-item-count">42</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
           <a href="/categories/">
-        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-count">10</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-count">17</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -183,7 +183,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://wdzaslzy.github.io/2022/08/31/other/OpenTSDB%E6%9F%A5%E8%AF%A2%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/">
+    <link itemprop="mainEntityOfPage" href="http://wdzaslzy.github.io/2022/08/31/other/OpenTSDB%E6%9F%A5%E8%AF%A2%E8%BF%87%E7%A8%8B%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/head.jpg">
@@ -196,12 +196,12 @@
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="OpenTSDB查询性能优化 | 大数据架构之道">
+      <meta itemprop="name" content="OpenTSDB查询过程源码分析 | 大数据架构之道">
       <meta itemprop="description" content="在实际查询中，OpenTSDB查询性能很差，时间段一长，OpenTSDB耗时就会延长。">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          OpenTSDB查询性能优化
+          OpenTSDB查询过程源码分析
         </h1>
 
         <div class="post-meta-container">
@@ -211,9 +211,15 @@
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">发表于</span>
-      
 
-      <time title="创建时间：2022-08-31 10:42:07 / 修改时间：14:43:55" itemprop="dateCreated datePublished" datetime="2022-08-31T10:42:07+08:00">2022-08-31</time>
+      <time title="创建时间：2022-08-31 10:42:07" itemprop="dateCreated datePublished" datetime="2022-08-31T10:42:07+08:00">2022-08-31</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2022-09-09 10:47:15" itemprop="dateModified" datetime="2022-09-09T10:47:15+08:00">2022-09-09</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -263,6 +269,31 @@
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> <span class="title function_">sendRpc</span><span class="params">(HBaseRpc rpc)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">this</span>.chan != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (rpc <span class="keyword">instanceof</span> BatchableRpc &amp;&amp; !(rpc <span class="keyword">instanceof</span> GetRequest) &amp;&amp; (<span class="built_in">this</span>.server_version &gt;= <span class="number">29</span> || rpc <span class="keyword">instanceof</span> PutRequest)) &#123;</span><br><span class="line">            <span class="type">BatchableRpc</span> <span class="variable">edit</span> <span class="operator">=</span> (BatchableRpc)rpc;</span><br><span class="line">            <span class="keyword">if</span> (edit.canBuffer() &amp;&amp; <span class="built_in">this</span>.hbase_client.getFlushInterval() &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                <span class="built_in">this</span>.bufferEdit(edit);</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="built_in">this</span>.addSingleEditCallbacks(edit);</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (rpc <span class="keyword">instanceof</span> MultiAction) &#123;</span><br><span class="line">            <span class="type">MultiAction</span> <span class="variable">batch</span> <span class="operator">=</span> (MultiAction)rpc;</span><br><span class="line">            <span class="keyword">if</span> (batch.size() == <span class="number">1</span>) &#123;</span><br><span class="line">                rpc = <span class="built_in">this</span>.multiActionToSingleAction(batch);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="built_in">this</span>.hbase_client.num_multi_rpcs.increment();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 序列化以后，写到channel中</span></span><br><span class="line">        <span class="type">ChannelBuffer</span> <span class="variable">serialized</span> <span class="operator">=</span> <span class="built_in">this</span>.encode((HBaseRpc)rpc);</span><br><span class="line">        <span class="keyword">if</span> (serialized == <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="type">Channel</span> <span class="variable">chan</span> <span class="operator">=</span> <span class="built_in">this</span>.chan;</span><br><span class="line">        <span class="keyword">if</span> (chan != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (<span class="built_in">this</span>.check_write_status &amp;&amp; !chan.isWritable()) &#123;</span><br><span class="line">                ((HBaseRpc)rpc).callback(<span class="keyword">new</span> <span class="title class_">PleaseThrottleException</span>(<span class="string">&quot;Region client [&quot;</span> + <span class="built_in">this</span> + <span class="string">&quot; ] channel is not writeable.&quot;</span>, (HBaseException)<span class="literal">null</span>, (HBaseRpc)rpc, ((HBaseRpc)rpc).getDeferred()));</span><br><span class="line">                <span class="built_in">this</span>.removeRpc((HBaseRpc)rpc, <span class="literal">false</span>);</span><br><span class="line">                <span class="built_in">this</span>.writes_blocked.incrementAndGet();</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            ((HBaseRpc)rpc).enqueueTimeout(<span class="built_in">this</span>);</span><br><span class="line">            Channels.write(chan, serialized);</span><br><span class="line">            <span class="built_in">this</span>.rpcs_sent.incrementAndGet();</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="type">boolean</span> <span class="variable">tryagain</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line">    <span class="type">boolean</span> dead;</span><br><span class="line">    <span class="keyword">synchronized</span>(<span class="built_in">this</span>) &#123;</span><br><span class="line">        dead = <span class="built_in">this</span>.dead;</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">this</span>.chan != <span class="literal">null</span>) &#123;</span><br><span class="line">            tryagain = <span class="literal">true</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!dead) &#123;</span><br><span class="line">            <span class="keyword">if</span> (<span class="built_in">this</span>.pending_rpcs == <span class="literal">null</span>) &#123;</span><br><span class="line">                <span class="built_in">this</span>.pending_rpcs = <span class="keyword">new</span> <span class="title class_">ArrayList</span>();</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (<span class="built_in">this</span>.pending_limit &gt; <span class="number">0</span> &amp;&amp; <span class="built_in">this</span>.pending_rpcs.size() &gt;= <span class="built_in">this</span>.pending_limit) &#123;</span><br><span class="line">                ((HBaseRpc)rpc).callback(<span class="keyword">new</span> <span class="title class_">PleaseThrottleException</span>(<span class="string">&quot;Exceeded the pending RPC limit&quot;</span>, (HBaseException)<span class="literal">null</span>, (HBaseRpc)rpc, ((HBaseRpc)rpc).getDeferred()));</span><br><span class="line">                <span class="built_in">this</span>.pending_breached.incrementAndGet();</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="built_in">this</span>.pending_rpcs.add(rpc);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!dead) &#123;</span><br><span class="line">        <span class="keyword">if</span> (tryagain) &#123;</span><br><span class="line">            <span class="built_in">this</span>.sendRpc((HBaseRpc)rpc);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            LOG.debug(<span class="string">&quot;RPC queued: &#123;&#125;&quot;</span>, rpc);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (((HBaseRpc)rpc).getRegion() != <span class="literal">null</span> &amp;&amp; !((HBaseRpc)rpc).failfast()) &#123;</span><br><span class="line">            <span class="built_in">this</span>.hbase_client.sendRpcToRegion((HBaseRpc)rpc);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            ((HBaseRpc)rpc).callback(<span class="keyword">new</span> <span class="title class_">ConnectionResetException</span>((Channel)<span class="literal">null</span>));</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 
+
+<h2 id="OpenTsdb请求处理过程"><a href="#OpenTsdb请求处理过程" class="headerlink" title="OpenTsdb请求处理过程"></a>OpenTsdb请求处理过程</h2><h3 id="程序入口：TSDMain-java"><a href="#程序入口：TSDMain-java" class="headerlink" title="程序入口：TSDMain.java"></a>程序入口：TSDMain.java</h3><p>TSDMain中，执行的是main函数。主要逻辑：</p>
+<ol>
+<li><p>初始化config</p>
+</li>
+<li><p>创建NIO，ServerBootstrap。用于接收rpc请求。</p>
+<blockquote>
+<p>server设置了一个PipelineFactory，当一个rpc请求被序列化以后，进入rpchandler</p>
+</blockquote>
+</li>
+<li><p>初始化TSDB</p>
+</li>
+</ol>
+<p>TSDMain启动时的核心代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="comment">// 1. 配置初始化</span></span><br><span class="line">    <span class="type">Config</span> <span class="variable">config</span> <span class="operator">=</span> CliOptions.getConfig(argp);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 2. 创建ChannelFactory</span></span><br><span class="line">    <span class="type">Executor</span> <span class="variable">executor</span> <span class="operator">=</span> Executors.newCachedThreadPool();</span><br><span class="line">    <span class="type">NioServerBossPool</span> <span class="variable">boss_pool</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NioServerBossPool</span>(executor, <span class="number">1</span>, <span class="keyword">new</span> <span class="title class_">BossThreadNamer</span>());</span><br><span class="line">    <span class="type">NioWorkerPool</span> <span class="variable">worker_pool</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NioWorkerPool</span>(executor, workers, <span class="keyword">new</span> <span class="title class_">WorkerThreadNamer</span>());</span><br><span class="line">    factory = <span class="keyword">new</span> <span class="title class_">NioServerSocketChannelFactory</span>(boss_pool, worker_pool);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 3. 创建ServerBootstrap</span></span><br><span class="line">    <span class="type">ServerBootstrap</span> <span class="variable">server</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ServerBootstrap</span>((ChannelFactory)factory);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 4. 设置PipelineFactory</span></span><br><span class="line">    server.setPipelineFactory(<span class="keyword">new</span> <span class="title class_">PipelineFactory</span>(tsdb, manager, connections_limit));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在PipelineFactory中，依赖了RpcHandler，当请求被decode以后，进入RpcHandler。核心代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> Object <span class="title function_">decode</span><span class="params">(ChannelHandlerContext ctx, Channel chan, ChannelBuffer buffer)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    <span class="keyword">if</span> (buffer.readableBytes() &lt; <span class="number">1</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="type">int</span> <span class="variable">firstbyte</span> <span class="operator">=</span> buffer.getUnsignedByte(buffer.readerIndex());</span><br><span class="line">        <span class="type">ChannelPipeline</span> <span class="variable">pipeline</span> <span class="operator">=</span> ctx.getPipeline();</span><br><span class="line">        pipeline.addLast(<span class="string">&quot;timeout&quot;</span>, PipelineFactory.<span class="built_in">this</span>.timeoutHandler);</span><br><span class="line">        pipeline.remove(<span class="built_in">this</span>);</span><br><span class="line">        pipeline.addLast(<span class="string">&quot;handler&quot;</span>, PipelineFactory.<span class="built_in">this</span>.rpchandler);</span><br><span class="line">        <span class="keyword">return</span> buffer.readBytes(buffer.readableBytes());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="发起rpc请求"><a href="#发起rpc请求" class="headerlink" title="发起rpc请求"></a>发起rpc请求</h3><p>当一个rpc请求进入后，服务端会通过worker线程进行decode，之后进入rpchandler。rpchandler主要用来处理当前发起的http请求。具体方法为：messageReceived</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">messageReceived</span><span class="params">(ChannelHandlerContext ctx, MessageEvent msgevent)</span> &#123;</span><br><span class="line">    <span class="type">Object</span> <span class="variable">message</span> <span class="operator">=</span> msgevent.getMessage();</span><br><span class="line">    <span class="keyword">if</span> (message <span class="keyword">instanceof</span> HttpRequest) &#123;</span><br><span class="line">        <span class="built_in">this</span>.handleHttpQuery(<span class="built_in">this</span>.tsdb, msgevent.getChannel(), (HttpRequest)message);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 流程：</span></span><br><span class="line"><span class="comment"> *	</span></span><br><span class="line"><span class="comment"> **/</span></span><br></pre></td></tr></table></figure>
+
+
     </div>
 
     
@@ -283,6 +314,9 @@
                 </a>
             </div>
             <div class="post-nav-item">
+                <a href="/2022/09/06/netty/NIO%E9%80%9A%E4%BF%A1%E8%AF%A6%E8%A7%A3/" rel="next" title="NIO通信详解">
+                  NIO通信详解 <i class="fa fa-chevron-right"></i>
+                </a>
             </div>
           </div>
     </footer>

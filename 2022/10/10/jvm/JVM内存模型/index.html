@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.2.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha256-DfWjNxDkM94fVBWx1H5BMMp0Zq7luBlV8QRcSES7s+0=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"wdzaslzy.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.12.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="理解Java内存模型，对JVM调优有很大的帮助">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JVM内存模型及垃圾回收">
+<meta property="og:url" content="http://wdzaslzy.github.io/2022/10/10/jvm/JVM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/index.html">
+<meta property="og:site_name" content="大数据架构之道">
+<meta property="og:description" content="理解Java内存模型，对JVM调优有很大的帮助">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/jvm/1665386027617.jpg">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/jvm/20221010152426.jpg">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/jvm/1665387561856.jpg">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/jvm/1665390803358.jpg">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/jvm/1665407847774.jpg">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/jvm/1665408808482.jpg">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/jvm/1665409091388.jpg">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/jvm/1665562808670.jpg">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/jvm/1665563015548.jpg">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/jvm/1665563710119.jpg">
+<meta property="article:published_time" content="2022-10-10T07:10:00.194Z">
+<meta property="article:modified_time" content="2022-10-13T03:32:17.747Z">
+<meta property="article:author" content="乡间小鹿">
+<meta property="article:tag" content="jvm">
+<meta property="article:tag" content="java">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://wdzaslzy.github.io/images/jvm/1665386027617.jpg">
+
+
+<link rel="canonical" href="http://wdzaslzy.github.io/2022/10/10/jvm/JVM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://wdzaslzy.github.io/2022/10/10/jvm/JVM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/","path":"2022/10/10/jvm/JVM内存模型/","title":"JVM内存模型及垃圾回收"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>JVM内存模型及垃圾回收 | 大数据架构之道</title>
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">大数据架构之道</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-说说"><a href="/shuoshuo/" rel="section"><i class="fa fa-calendar fa-fw"></i>说说</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Java%E8%AF%AD%E8%A8%80%E7%9A%84%E8%B7%A8%E5%B9%B3%E5%8F%B0%E7%89%B9%E6%80%A7"><span class="nav-number">1.</span> <span class="nav-text">Java语言的跨平台特性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JVM%E6%95%B4%E4%BD%93%E7%BB%93%E6%9E%84%E5%8F%8A%E8%BF%90%E8%A1%8C%E6%A8%A1%E5%9E%8B"><span class="nav-number">2.</span> <span class="nav-text">JVM整体结构及运行模型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#JVM%E7%BB%84%E6%88%90"><span class="nav-number">2.1.</span> <span class="nav-text">JVM组成</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#JVM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B"><span class="nav-number">2.2.</span> <span class="nav-text">JVM内存模型</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JVM%E5%86%85%E5%AD%98%E5%8F%82%E6%95%B0%E8%AE%BE%E7%BD%AE"><span class="nav-number">3.</span> <span class="nav-text">JVM内存参数设置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%88%9B%E5%BB%BA%E8%BF%87%E7%A8%8B"><span class="nav-number">4.</span> <span class="nav-text">对象的创建过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D"><span class="nav-number">5.</span> <span class="nav-text">对象的内存分配</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%B9%E8%B1%A1%E5%9C%A8%E6%A0%88%E4%B8%8A%E5%88%86%E9%85%8D"><span class="nav-number">5.1.</span> <span class="nav-text">对象在栈上分配</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%B9%E8%B1%A1%E5%9C%A8Eden%E5%8C%BA%E5%88%86%E9%85%8D"><span class="nav-number">5.2.</span> <span class="nav-text">对象在Eden区分配</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%B9%E8%B1%A1%E5%9C%A8%E8%80%81%E5%B9%B4%E4%BB%A3%E5%88%86%E9%85%8D"><span class="nav-number">5.3.</span> <span class="nav-text">对象在老年代分配</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%A4%A7%E5%AF%B9%E8%B1%A1%E7%9B%B4%E6%8E%A5%E8%BF%9B%E5%85%A5%E8%80%81%E5%B9%B4%E4%BB%A3"><span class="nav-number">5.3.1.</span> <span class="nav-text">大对象直接进入老年代</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%95%BF%E6%9C%9F%E5%AD%98%E6%B4%BB%E7%9A%84%E5%AF%B9%E8%B1%A1%E8%BF%9B%E5%85%A5%E8%80%81%E5%B9%B4%E4%BB%A3"><span class="nav-number">5.3.2.</span> <span class="nav-text">长期存活的对象进入老年代</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AF%B9%E8%B1%A1%E5%8A%A8%E6%80%81%E5%B9%B4%E9%BE%84%E5%88%A4%E6%96%AD"><span class="nav-number">5.3.3.</span> <span class="nav-text">对象动态年龄判断</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%80%81%E5%B9%B4%E4%BB%A3%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D%E6%8B%85%E4%BF%9D%E6%9C%BA%E5%88%B6"><span class="nav-number">5.3.4.</span> <span class="nav-text">老年代空间分配担保机制</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%86%85%E5%AD%98%E5%9B%9E%E6%94%B6"><span class="nav-number">6.</span> <span class="nav-text">对象的内存回收</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9E%83%E5%9C%BE%E5%88%A4%E6%96%AD%E7%AE%97%E6%B3%95"><span class="nav-number">6.1.</span> <span class="nav-text">垃圾判断算法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BC%95%E7%94%A8%E8%AE%A1%E6%95%B0%E6%B3%95"><span class="nav-number">6.1.1.</span> <span class="nav-text">引用计数法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%AF%E8%BE%BE%E6%80%A7%E7%AE%97%E6%B3%95"><span class="nav-number">6.1.2.</span> <span class="nav-text">可达性算法</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E7%AE%97%E6%B3%95"><span class="nav-number">6.2.</span> <span class="nav-text">垃圾回收算法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A0%87%E8%AE%B0-%E6%B8%85%E9%99%A4"><span class="nav-number">6.2.1.</span> <span class="nav-text">标记-清除</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A0%87%E8%AE%B0-%E6%95%B4%E7%90%86"><span class="nav-number">6.2.2.</span> <span class="nav-text">标记-整理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%A4%8D%E5%88%B6%E7%AE%97%E6%B3%95"><span class="nav-number">6.2.3.</span> <span class="nav-text">复制算法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%88%86%E4%BB%A3%E6%94%B6%E9%9B%86%E7%90%86%E8%AE%BA"><span class="nav-number">6.2.4.</span> <span class="nav-text">分代收集理论</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8"><span class="nav-number">6.3.</span> <span class="nav-text">垃圾收集器</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Serial%E6%94%B6%E9%9B%86%E5%99%A8"><span class="nav-number">6.3.1.</span> <span class="nav-text">Serial收集器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Parallel%E6%94%B6%E9%9B%86%E5%99%A8"><span class="nav-number">6.3.2.</span> <span class="nav-text">Parallel收集器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#ParNew%E6%94%B6%E9%9B%86%E5%99%A8"><span class="nav-number">6.3.3.</span> <span class="nav-text">ParNew收集器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#CMS%E6%94%B6%E9%9B%86%E5%99%A8"><span class="nav-number">6.3.4.</span> <span class="nav-text">CMS收集器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#G1%E6%94%B6%E9%9B%86%E5%99%A8"><span class="nav-number">6.3.5.</span> <span class="nav-text">G1收集器</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%89%E8%89%B2%E6%A0%87%E8%AE%B0%E7%AE%97%E6%B3%95"><span class="nav-number">6.4.</span> <span class="nav-text">三色标记算法</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="乡间小鹿"
+      src="/images/head.jpg">
+  <p class="site-author-name" itemprop="name">乡间小鹿</p>
+  <div class="site-description" itemprop="description">每一个不曾起舞的日子都是对生命的辜负</div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">42</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">17</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://wdzaslzy.github.io/2022/10/10/jvm/JVM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/head.jpg">
+      <meta itemprop="name" content="乡间小鹿">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="大数据架构之道">
+      <meta itemprop="description" content="每一个不曾起舞的日子都是对生命的辜负">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="JVM内存模型及垃圾回收 | 大数据架构之道">
+      <meta itemprop="description" content="理解Java内存模型，对JVM调优有很大的帮助">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          JVM内存模型及垃圾回收
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-10-10 15:10:00" itemprop="dateCreated datePublished" datetime="2022-10-10T15:10:00+08:00">2022-10-10</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2022-10-13 11:32:17" itemprop="dateModified" datetime="2022-10-13T11:32:17+08:00">2022-10-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3JVM/" itemprop="url" rel="index"><span itemprop="name">深入理解JVM</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+            <div class="post-description">理解Java内存模型，对JVM调优有很大的帮助</div>
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h2 id="Java语言的跨平台特性"><a href="#Java语言的跨平台特性" class="headerlink" title="Java语言的跨平台特性"></a>Java语言的跨平台特性</h2><p>Java语言可以跨平台运行。之所以能跨平台运行，主要是由于它有适配各种平台的运行环境。它被一个称为Java虚拟机的进行了包装，每个平台都有对应的java虚拟机。</p>
+<p><img src="/../../images/jvm/1665386027617.jpg"></p>
+<h2 id="JVM整体结构及运行模型"><a href="#JVM整体结构及运行模型" class="headerlink" title="JVM整体结构及运行模型"></a>JVM整体结构及运行模型</h2><h3 id="JVM组成"><a href="#JVM组成" class="headerlink" title="JVM组成"></a>JVM组成</h3><p>JVM的组成：类装在子系统、运行时数据存储（Java内存模型）、字节码执行引擎</p>
+<p><img src="/../../images/jvm/20221010152426.jpg"></p>
+<p>当我们编写好一个类后，jvm会通过类加载器把我们的类加载到jvm，存储jvm内存模型中。当我们运行一个类时，字节码执行引擎会去修改程序计数器来确定执行位置。</p>
+<h3 id="JVM内存模型"><a href="#JVM内存模型" class="headerlink" title="JVM内存模型"></a>JVM内存模型</h3><p>JVM的内存组成部分：堆、方法区（jdk8后也叫元空间）、栈（线程栈）、本地方法栈（native栈）和程序计数器。</p>
+<p>当我们执行一个main函数时，通过java命令，会先调用c++代码，启动一个jvm，将我们的类加载到jvm中。被加载的信息存储在元数据空间。元数据空间里面主要存放的是：常量、静态变量、类信息（类名、方法引用等）</p>
+<hr>
+<p>被加载后的类被jvm调用后，分别会在线程栈、本地方法栈中分配栈帧，创建一块程序计数器内存空间。</p>
+<p><img src="/../../images/jvm/1665387561856.jpg"></p>
+<p>该部分内存是线程私有的。每个线程都会分配自己的内存空间。</p>
+<p>栈里面主要存放：局部变量表、操作数栈、动态链接、方法出口</p>
+<ul>
+<li>局部变量表：方法里面定义的变量</li>
+<li>操作数栈：操作指令，例如：1+1，会将计算机指令依次压入操作数栈</li>
+<li>动态链接：指向运行时常量池的动态引用</li>
+<li>方法出口：例如返回结果、调用方法</li>
+</ul>
+<hr>
+<p>如果我们在main方法里面创建了对象，该对象会被分配在堆里面，栈里面存储一个指向堆中对象的地址。</p>
+<p>jvm根据对象的存活时间，又将堆分为了新生代和老年代。新生代用于存放刚创建的对象，老年代存放长时间存活的对象。根据垃圾回收情况，新生代又被划分为eden区和两个交换区。比例分别为：8：1：1。</p>
+<h2 id="JVM内存参数设置"><a href="#JVM内存参数设置" class="headerlink" title="JVM内存参数设置"></a>JVM内存参数设置</h2><p><img src="/../../images/jvm/1665390803358.jpg"></p>
+<p>细节：</p>
+<p>-XX:MetaspaceSize 是指定元空间触发fullgc的初始阈值，单位是字节，默认21M。达到该值就会触发full gc进行类型卸载，同时收集器会对该值进行调整：如果释放了大量空间，则适当降低该值；如果释放了很少的空间，那么则适当的提高。</p>
+<p>-Xss设置越小的值，说明一个线程栈里能分配的栈帧就越少。对整个jvm来说，能开启的线程数会更多。1个线程默认分配1M内存。</p>
+<h2 id="对象的创建过程"><a href="#对象的创建过程" class="headerlink" title="对象的创建过程"></a>对象的创建过程</h2><p><img src="/../../images/jvm/1665407847774.jpg"></p>
+<p><strong>1. 类加载检查</strong></p>
+<p>虚拟机遇到一条new指令时，首先将去检查这个指令的参数是否能在常量池中定位到一个类的符号引用，并且检查这个符号引用代表的类是否已经被加载、解析和初始化过。如果没有，则先进行一次类加载过程。</p>
+<p><strong>2. 分配内存</strong></p>
+<p>在类加载检查通过后，接下来虚拟机将为新生对象分配内存，对象所需的内存大小在类加载完成后便可完全确定，为对象分配空间的任务等同于把一块确定大小的内存从Java堆中划分出来。</p>
+<p>这个步骤有两个问题：</p>
+<ol>
+<li>如何划分内存</li>
+<li>在并发情况下，可能出现正在给对象A分配内存，指针还没来得及修改，对象B又同时使用了原来的指针来分配内存的情况。</li>
+</ol>
+<p><strong>划分内存的方法：</strong></p>
+<ul>
+<li><p>指针碰撞</p>
+<blockquote>
+<p>如果Java堆中内存是绝对规整的，所有用过的内存都放在一边，空闲的内存放在另一边，中间放着一个指针作为分界点的指示器，那所分配内存就仅仅是把那个指针向空闲空间那边挪动一段与对象大小相同的距离。</p>
+</blockquote>
+</li>
+<li><p>空闲列表</p>
+<blockquote>
+<p>如果Java堆中内存并不是规整的，已使用的内存和空闲的内存相互交错，那就没有办法简单的进行指针碰撞了，虚拟机必须维护一个列表，记录哪些内存块是可用的，在分配的时候从列表中找到一块足够大的空间划分给对象实例，并更新列表上的记录。</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>解决并发问题的方法：</strong></p>
+<ul>
+<li><p>CAS</p>
+<blockquote>
+<p>虚拟机采用CAS配上失败重试的方式保证更新操作的原子性来对分配内存空间的动作进行同步处理</p>
+</blockquote>
+</li>
+<li><p>本地线程分配缓存（TLAB）</p>
+<blockquote>
+<p>把内存分配的动作按照线程划分在不同的空间之中进行，即每个线程在Java堆中预先分配一小块内存。</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>3. 初始化</strong></p>
+<p>内存分配完成后，虚拟机需要将分配的内存空间都初始化为零值。</p>
+<p><strong>4. 设置对象头</strong></p>
+<p>初始化零值之后，虚拟机要对对象进行必要的设置，例如这个对象是哪个类的实例、如何才能找到类的元数据信息、对象的哈希码、对象的GC分代年龄等信息，这些信息存放在对象的对象头之中。</p>
+<p>在HotSpot虚拟机中，对象被分为三块：对象头、实例数据、对齐填充。</p>
+<p><img src="/../../images/jvm/1665408808482.jpg"></p>
+<p><strong>5. 执行init方法</strong></p>
+<p>执行<init>方法，即对象按照程序员的意愿进行初始化。对应到语言层面上讲，就是对属性赋值和执行构造方法。</p>
+<h2 id="对象的内存分配"><a href="#对象的内存分配" class="headerlink" title="对象的内存分配"></a>对象的内存分配</h2><p><img src="/../../images/jvm/1665409091388.jpg"></p>
+<h3 id="对象在栈上分配"><a href="#对象在栈上分配" class="headerlink" title="对象在栈上分配"></a><strong>对象在栈上分配</strong></h3><p>对象一般是在某个方法执行时被创建出来的，如果该对象只是在局部变量中使用，当方法执行结束后，该对象就立即变成了垃圾对象。如果将此对象分配在堆中，需要依靠gc来进行回收，给gc带来压力。</p>
+<p>因此，JVM为了降低gc压力，会通过逃逸分析来确定该对象会不会被外部访问，如果该对象不会逃逸，则优先在栈上分配内存。这样，对象所占用的内存空间就可以随着方法结束而销毁。</p>
+<p><strong>逃逸分析：</strong></p>
+<p>分析对象的动态作用域，当它是局部变量时，则该对象是未逃逸状态。</p>
+<p><strong>标量替换</strong></p>
+<p>当通过逃逸分析得出某个对象不被外部引用时，会判断该对象是否能进一步被分解，如果可以，jvm会将该对象成员变量分解成若干个子对象，在栈中为这些子对象分配空间。这样的做法被称作标量替换。</p>
+<p>标量替换的好处：不会因为没有一大块连续空间而导致对象内存不够分配。</p>
+<p>一般标量是不能被进一步分解的量。在java中一般是基本数据类型和reference类型。能被进一步分解的被称作是聚合量。</p>
+<h3 id="对象在Eden区分配"><a href="#对象在Eden区分配" class="headerlink" title="对象在Eden区分配"></a>对象在Eden区分配</h3><p>一般对象都是在新生代的eden区分配。当eden区空间不足时，会触发一次minor gc。新生代的特点是朝生夕死，所以每次进行minor gc时，存活的对象会很少，而新生代一般都用复制算法来回收垃圾，所以新生代的空间被划分为一个eden区和两个survivor区。每次进行minor gc时，存活的对象会被复制到空的交换区。他们的比例默认是8:1:1。</p>
+<h3 id="对象在老年代分配"><a href="#对象在老年代分配" class="headerlink" title="对象在老年代分配"></a>对象在老年代分配</h3><h4 id="大对象直接进入老年代"><a href="#大对象直接进入老年代" class="headerlink" title="大对象直接进入老年代"></a>大对象直接进入老年代</h4><p>大对象就是需要大量连续内存空间的对象（比如：字符串、数组）。jvm参数 -XX:PretenureSizeThreshold 可以设置大对象的大小。如果对象大小超过设置大小时，则直接进入老年代。这个参数只能在Serial和ParNew两个收集器下有效。</p>
+<p>为什么要将大对象直接放入老年代呢？</p>
+<p>目的是为了避免大对象每次进行minor gc时，连续从交换区互相复制。</p>
+<h4 id="长期存活的对象进入老年代"><a href="#长期存活的对象进入老年代" class="headerlink" title="长期存活的对象进入老年代"></a>长期存活的对象进入老年代</h4><p>前面有介绍，每个对象的对象头里面都会维护一个4位(最大值15)的分代年龄，每次触发一次minor gc还没有被回收的对象，分代年龄+1，当分代年龄达到15次后（默认15次，CMS收集器默认是6次），下次进行minor gc时，该对象会被放入老年代。如果想提前进入老年代，可以通过参数： -XX:MaxTenuringThreshold  来设置进入老年代前minor gc的次数。</p>
+<h4 id="对象动态年龄判断"><a href="#对象动态年龄判断" class="headerlink" title="对象动态年龄判断"></a>对象动态年龄判断</h4><p>由于每次minor gc发生后，存活的对象都会进入Survivor区，为了保证下次minor gc有新的对象进入，JVM做了一个动态年龄判断，当Survivor区中某一批对象的总大小大于等于survivor区总大小的50%时，对象年龄大于这一批的对象，将会直接被放入老年代中。例如：年龄1，年龄2……年龄10的对象总大小超过了50%，则年龄10以上的对象都会被提前放入老年代。</p>
+<h4 id="老年代空间分配担保机制"><a href="#老年代空间分配担保机制" class="headerlink" title="老年代空间分配担保机制"></a>老年代空间分配担保机制</h4><p>每次minor gc之前，jvm都会去计算一下老年代剩余可用空间。如果老年代剩余可用空间小于年轻代里现有的对象总大小，则会去判断历史每次一进入老年代的对象平均大小是否大于老年代剩余的空间，如果大于，则触发一次full gc，对老年代和新生代同时进行一次垃圾回收，回收后还是没有足够空间，则出现OOM。</p>
+<h2 id="对象的内存回收"><a href="#对象的内存回收" class="headerlink" title="对象的内存回收"></a>对象的内存回收</h2><h3 id="垃圾判断算法"><a href="#垃圾判断算法" class="headerlink" title="垃圾判断算法"></a>垃圾判断算法</h3><h4 id="引用计数法"><a href="#引用计数法" class="headerlink" title="引用计数法"></a>引用计数法</h4><p>给每一个对象添加一个引用计数器，每当有一个地方引用它，则计数器+1，当引用失效后，计数器-1。某个对象计数器为0时，认为该对象是垃圾对象，可被回收。</p>
+<p>该算法有个致命的缺点就是，如果两个对象是互相引用对象，但是没有被其它对象引用，那么这两个对象永远不会被回收。目前的jdk已经不用该回收算法了。</p>
+<h4 id="可达性算法"><a href="#可达性算法" class="headerlink" title="可达性算法"></a>可达性算法</h4><p>将“GC Root”作为对象起点，从这些节点开始向下搜索引用对象，找到的对象都标记为非垃圾对象，其余未标记的都是垃圾对象。</p>
+<p>GC Root：线程栈的局部变量、静态变量、本地方法栈变量、常量等。</p>
+<h3 id="垃圾回收算法"><a href="#垃圾回收算法" class="headerlink" title="垃圾回收算法"></a>垃圾回收算法</h3><h4 id="标记-清除"><a href="#标记-清除" class="headerlink" title="标记-清除"></a>标记-清除</h4><p>先标记存活对象，再将未标记的垃圾对象清理。</p>
+<p>优点：实现简单</p>
+<p>缺点：会产生内存碎片、效率低</p>
+<h4 id="标记-整理"><a href="#标记-整理" class="headerlink" title="标记-整理"></a>标记-整理</h4><p>和标记-清除类似，先标记存活对象，再将存活对象全部向一端移动，最后清理边界意外的所有对象。</p>
+<p>优点：不会产生内存碎片</p>
+<p>缺点：存活对象多时，标记效率低下</p>
+<h4 id="复制算法"><a href="#复制算法" class="headerlink" title="复制算法"></a>复制算法</h4><p>复制算法是为了解决标记效率低下的问题而出现的。它将内存分为大小相同的两个区域，每次只使用其中的一块，当这一块内存用完后，将还存活的对象复制到另一边去，然后再同一清理该块内存空间。如此反复。</p>
+<p>该算法的缺点是，会浪费空间。每次都只有一半的内存可用。</p>
+<h4 id="分代收集理论"><a href="#分代收集理论" class="headerlink" title="分代收集理论"></a>分代收集理论</h4><p>根据对象的存活周期，将堆分为新生代和老年代，新生代中存放的大部分是朝生夕死的对象，只需要提供一小块空闲区域用来复制存活对象。该区域一般用复制算法。老年代一般存放持久对象，该区域可用标记清除或标记整理算法进行回收。</p>
+<h3 id="垃圾收集器"><a href="#垃圾收集器" class="headerlink" title="垃圾收集器"></a>垃圾收集器</h3><p>垃圾收集算法是一种理论，垃圾收集器是基于理论的一种实现。</p>
+<p>常见的垃圾收集器：<img src="/../../images/jvm/1665562808670.jpg"></p>
+<h4 id="Serial收集器"><a href="#Serial收集器" class="headerlink" title="Serial收集器"></a>Serial收集器</h4><p>早期的计算机是一个单核计算机，所以在进行gc时，用单线程来执行。</p>
+<p>Serial可用在新生代和老年代。新生代使用复制算法回收，老年代使用标记-清除算法进行回收。</p>
+<p>serial收集器实现步骤：</p>
+<p><img src="/../../images/jvm/1665563015548.jpg"></p>
+<p>当它进行gc回收时，会stop the world。</p>
+<h4 id="Parallel收集器"><a href="#Parallel收集器" class="headerlink" title="Parallel收集器"></a>Parallel收集器</h4><p>随着时间的推移，多核cpu出现，为了提升gc效率，降低stop the world时间，产生了新的收集器：并发收集器。</p>
+<p>它的原理和Serial收集器一样，唯一不同的在于，它可以多线程并行gc。默认的线程数是cpu的核数。</p>
+<h4 id="ParNew收集器"><a href="#ParNew收集器" class="headerlink" title="ParNew收集器"></a>ParNew收集器</h4><p>ParNew收集器的原理与Parallel收集器一样。唯一的区别是，Parallel不能和CMS组合使用，而ParNew可以和CMS收集器组合。</p>
+<h4 id="CMS收集器"><a href="#CMS收集器" class="headerlink" title="CMS收集器"></a>CMS收集器</h4><p>再之后，计算机需要的内存越来越大，垃圾越来越多，如果使用Parallel收集器，stop the world时间会更长。为了降低等待时间，CMS收集器出现了。CMS收集器的目的是：降低stop the world时间，但是整个gc时间会变长。</p>
+<p>CMS收集器原理如下：</p>
+<p><img src="/../../images/jvm/1665563710119.jpg"></p>
+<p>CMS收集器主要用于老年代。</p>
+<ul>
+<li>初始标记：暂停所有的其它线程，并记录gc roots<strong>直接能引用的对象</strong>，速度很快。</li>
+<li>并发标记：并发标记阶段是从上一阶段找到的对象开始遍历整个对象图的过程，这个过程耗时较长，但可以和用户线程共同进行。因为用户线程也在运行，会导致已经标记过的对象状态发生变化。</li>
+<li>重新标记：重新标记阶段就是为了修正并发标记期间的变动情况。这个阶段的停顿时间会比初始阶段稍微长一点，主要用到三色标记里面的增量更新算法做重新标记。</li>
+<li>并发清理：开始清理未被标记过的对象，这个阶段可以和用户线程同时进行。</li>
+<li>并发重置：将标记过的对象状态清除。</li>
+</ul>
+<p>CMS优点是stop the world时间短，缺点是：</p>
+<ol>
+<li>对cpu资源敏感，会和业务服务抢资源</li>
+<li>无法处理浮动垃圾（并发标记阶段和并发清理阶段产生的垃圾）</li>
+<li>并发full gc。本次full gc还未结束，因为和用户线程在同时进行，可能存在再次触发full gc的情况。此时，它会完全进入stop the world，使用serial old垃圾收集器来回收。</li>
+</ol>
+<p><strong>CMS相关的核心参数：</strong></p>
+<ol>
+<li>-XX:+UseConcMarkSweepGC：启用cms</li>
+<li>-XX:ConcGCThreads：并发的GC线程数</li>
+<li>-XX:+UseCMSCompactAtFullCollection：FullGC之后做压缩整理（减少碎片）</li>
+<li>-XX:CMSFullGCsBeforeCompaction：多少次FullGC之后压缩一次，默认是0，代表每次FullGC后都会压缩一<br>次 </li>
+<li>-XX:CMSInitiatingOccupancyFraction: 当老年代使用达到该比例时会触发FullGC（默认是92，这是百分比）</li>
+<li>-XX:+UseCMSInitiatingOccupancyOnly：只使用设定的回收阈值(-XX:CMSInitiatingOccupancyFraction设<br>定的值)，如果不指定，JVM仅在第一次使用设定值，后续则会自动调整</li>
+<li>-XX:+CMSScavengeBeforeRemark：在CMS GC前启动一次minor gc，目的在于减少老年代对年轻代的引<br>用，降低CMS GC的标记阶段时的开销，一般CMS的GC耗时 80%都在标记阶段</li>
+<li>-XX:+CMSParallellnitialMarkEnabled：表示在初始标记的时候多线程执行，缩短STW</li>
+<li>-XX:+CMSParallelRemarkEnabled：在重新标记的时候多线程执行，缩短STW</li>
+</ol>
+<h4 id="G1收集器"><a href="#G1收集器" class="headerlink" title="G1收集器"></a>G1收集器</h4><p>参考下篇</p>
+<h3 id="三色标记算法"><a href="#三色标记算法" class="headerlink" title="三色标记算法"></a>三色标记算法</h3><p>在CMS收集器中，并发标记的过程中，因为标记期间是和应用线程同时跑，对象间的引用可能发生变化，有多标或漏标的情况发生。</p>
+<p>jvm在进行对象遍历时，会根据“是否访问过”这个条件标记成三种颜色。</p>
+<ul>
+<li>黑色：表示对象已经被垃圾收集器访问过，且这个对象的所有引用都已经扫描过。黑色的对象代表已经扫描过，它是安全存活的，如果有其它对象引用指向了黑色对象，无需重新扫描一遍。</li>
+<li>灰色：表示对象已经被垃圾收集器访问过，但这个对象上至少存在一个引用还没有被扫描过。</li>
+<li>白色：表示对象尚未被垃圾收集器访问过。</li>
+</ul>
+<p>CMS收集器，在收集的过程中会产生浮动垃圾。例如：初始标记时，标记的对象，在并发标记过程中，失效了。</p>
+<p>浮动垃圾不会影响垃圾回收的正确性，只是需要等到下一轮垃圾回收中才被清除。</p>
+<p>而在初始标记过程中未被标记的对象，在并发标记的过程中，有可能被引用。这个时候就会出现漏标的情况。漏标影响垃圾回收的正确性。会在重新标记的过程中，采用增量更新和原始快照的方式来重新标记。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/jvm/" rel="tag"><i class="fa fa-tag"></i> jvm</a>
+              <a href="/tags/java/" rel="tag"><i class="fa fa-tag"></i> java</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/10/08/jvm/JVM%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6/" rel="prev" title="JVM类加载机制">
+                  <i class="fa fa-chevron-left"></i> JVM类加载机制
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/10/13/jvm/G1%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8/" rel="next" title="G1垃圾收集器">
+                  G1垃圾收集器 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">乡间小鹿</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>
