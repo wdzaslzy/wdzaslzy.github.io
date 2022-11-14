@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.2.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha256-DfWjNxDkM94fVBWx1H5BMMp0Zq7luBlV8QRcSES7s+0=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"wdzaslzy.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.12.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="当线上出现异常时，例如内存溢出、内存泄漏、gc频繁或者cpu线程负荷高等各种情况时，快速定位问题则显得相当重要。这篇主要介绍一下线上定位问题的一些工具。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JVM调优工具">
+<meta property="og:url" content="http://wdzaslzy.github.io/2022/10/20/jvm/JVM%E8%B0%83%E4%BC%98%E5%B7%A5%E5%85%B7/index.html">
+<meta property="og:site_name" content="大数据架构之道">
+<meta property="og:description" content="当线上出现异常时，例如内存溢出、内存泄漏、gc频繁或者cpu线程负荷高等各种情况时，快速定位问题则显得相当重要。这篇主要介绍一下线上定位问题的一些工具。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/jvm/20221020103340.png">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/jvm/20221020104345.png">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/jvm/1666235823197.jpg">
+<meta property="og:image" content="http://wdzaslzy.github.io/images/jvm/20221020142349.png">
+<meta property="article:published_time" content="2022-10-20T01:48:39.000Z">
+<meta property="article:modified_time" content="2022-10-24T07:32:29.788Z">
+<meta property="article:author" content="乡间小鹿">
+<meta property="article:tag" content="jvm">
+<meta property="article:tag" content="java">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://wdzaslzy.github.io/images/jvm/20221020103340.png">
+
+
+<link rel="canonical" href="http://wdzaslzy.github.io/2022/10/20/jvm/JVM%E8%B0%83%E4%BC%98%E5%B7%A5%E5%85%B7/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://wdzaslzy.github.io/2022/10/20/jvm/JVM%E8%B0%83%E4%BC%98%E5%B7%A5%E5%85%B7/","path":"2022/10/20/jvm/JVM调优工具/","title":"JVM调优工具"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>JVM调优工具 | 大数据架构之道</title>
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">大数据架构之道</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-说说"><a href="/shuoshuo/" rel="section"><i class="fa fa-calendar fa-fw"></i>说说</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#jdk%E8%87%AA%E5%B8%A6%E7%9A%84%E4%B8%80%E4%BA%9B%E5%B7%A5%E5%85%B7"><span class="nav-number">1.</span> <span class="nav-text">jdk自带的一些工具</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Jmap"><span class="nav-number">1.1.</span> <span class="nav-text">Jmap</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Jstack"><span class="nav-number">1.2.</span> <span class="nav-text">Jstack</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Jstat"><span class="nav-number">1.3.</span> <span class="nav-text">Jstat</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JVM%E8%BF%90%E8%A1%8C%E6%83%85%E5%86%B5%E9%A2%84%E4%BC%B0"><span class="nav-number">2.</span> <span class="nav-text">JVM运行情况预估</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B0%83%E4%BC%98%E6%A1%88%E4%BE%8B"><span class="nav-number">2.1.</span> <span class="nav-text">调优案例</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="乡间小鹿"
+      src="/images/head.jpg">
+  <p class="site-author-name" itemprop="name">乡间小鹿</p>
+  <div class="site-description" itemprop="description">每一个不曾起舞的日子都是对生命的辜负</div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">44</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://wdzaslzy.github.io/2022/10/20/jvm/JVM%E8%B0%83%E4%BC%98%E5%B7%A5%E5%85%B7/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/head.jpg">
+      <meta itemprop="name" content="乡间小鹿">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="大数据架构之道">
+      <meta itemprop="description" content="每一个不曾起舞的日子都是对生命的辜负">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="JVM调优工具 | 大数据架构之道">
+      <meta itemprop="description" content="当线上出现异常时，例如内存溢出、内存泄漏、gc频繁或者cpu线程负荷高等各种情况时，快速定位问题则显得相当重要。这篇主要介绍一下线上定位问题的一些工具。">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          JVM调优工具
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-10-20 09:48:39" itemprop="dateCreated datePublished" datetime="2022-10-20T09:48:39+08:00">2022-10-20</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2022-10-24 15:32:29" itemprop="dateModified" datetime="2022-10-24T15:32:29+08:00">2022-10-24</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3JVM/" itemprop="url" rel="index"><span itemprop="name">深入理解JVM</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+            <div class="post-description">当线上出现异常时，例如内存溢出、内存泄漏、gc频繁或者cpu线程负荷高等各种情况时，快速定位问题则显得相当重要。这篇主要介绍一下线上定位问题的一些工具。</div>
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h2 id="jdk自带的一些工具"><a href="#jdk自带的一些工具" class="headerlink" title="jdk自带的一些工具"></a>jdk自带的一些工具</h2><p>启动一个web应用程序，什么样的都可以，尝试先用jdk自带的一些工具来看看当前应用程序的执行情况。</p>
+<h3 id="Jmap"><a href="#Jmap" class="headerlink" title="Jmap"></a>Jmap</h3><p>此命令可以用来查看内存信息、实例个数以及占用内存大小。</p>
+<p><strong>jmap提供的命令</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">&gt; jmap</span><br><span class="line">Usage:</span><br><span class="line">    jmap [option] &lt;pid&gt;</span><br><span class="line">        (to connect to running process)</span><br><span class="line">    jmap [option] &lt;executable &lt;core&gt;</span><br><span class="line">        (to connect to a core file)</span><br><span class="line">    jmap [option] [server_id@]&lt;remote server IP or hostname&gt;</span><br><span class="line">        (to connect to remote debug server)</span><br><span class="line"></span><br><span class="line"><span class="built_in">where</span> &lt;option&gt; is one of:</span><br><span class="line">    &lt;none&gt;               to <span class="built_in">print</span> same info as Solaris pmap</span><br><span class="line">    -heap                to <span class="built_in">print</span> java heap summary</span><br><span class="line">    -histo[:live]        to <span class="built_in">print</span> histogram of java object heap; <span class="keyword">if</span> the <span class="string">&quot;live&quot;</span></span><br><span class="line">                         suboption is specified, only count live objects</span><br><span class="line">    -clstats             to <span class="built_in">print</span> class loader statistics</span><br><span class="line">    -finalizerinfo       to <span class="built_in">print</span> information on objects awaiting finalization</span><br><span class="line">    -dump:&lt;dump-options&gt; to dump java heap <span class="keyword">in</span> hprof binary format</span><br><span class="line">                         dump-options:</span><br><span class="line">                           live         dump only live objects; <span class="keyword">if</span> not specified,</span><br><span class="line">                                        all objects <span class="keyword">in</span> the heap are dumped.</span><br><span class="line">                           format=b     binary format</span><br><span class="line">                           file=&lt;file&gt;  dump heap to &lt;file&gt;</span><br><span class="line">                         Example: jmap -dump:live,format=b,file=heap.bin &lt;pid&gt;</span><br><span class="line">    -F                   force. Use with -dump:&lt;dump-options&gt; &lt;pid&gt; or -histo</span><br><span class="line">                         to force a heap dump or histogram when &lt;pid&gt; does not</span><br><span class="line">                         respond. The <span class="string">&quot;live&quot;</span> suboption is not supported</span><br><span class="line">                         <span class="keyword">in</span> this mode.</span><br><span class="line">    -h | -<span class="built_in">help</span>           to <span class="built_in">print</span> this <span class="built_in">help</span> message</span><br><span class="line">    -J&lt;flag&gt;             to pass &lt;flag&gt; directly to the runtime system</span><br></pre></td></tr></table></figure>
+
+<p>重要的几个操作：</p>
+<ul>
+<li>heap：查看堆信息</li>
+<li>histo：查看对象信息</li>
+<li>dump：堆内存dump</li>
+</ul>
+<p><strong>heap使用</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt; jmap -heap 20356</span><br></pre></td></tr></table></figure>
+
+<p><img src="/../../images/jvm/20221020103340.png"></p>
+<p>从打印结果可以看到堆内存的配置信息：Heap Configuration</p>
+<p><strong>histo使用</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt; jmap -histo 20356 &gt; ./log.txt</span><br></pre></td></tr></table></figure>
+
+<p><img src="/../../images/jvm/20221020104345.png"></p>
+<ul>
+<li>num：序号</li>
+<li>instances：实例数量</li>
+<li>bytes：占用空间大小</li>
+<li>class name：类名称，【C is a char[]，I is a int[]，S is a shot[]，B is a byte[]】</li>
+</ul>
+<p>当应用程序出现内存泄漏时，可以通过该命令来查找是什么对象引起的内存泄漏。</p>
+<p>（PS：实际线上一个对象可能被多个地方引用，需要借助其他方式来定位具体的位置。）</p>
+<p><strong>堆内存dump</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jmap -dump:live,format=b,file=heap.hprof 20356</span><br></pre></td></tr></table></figure>
+
+<p>一般线上情况下，当出现内存泄漏或内存溢出时，根本没时间手动去执行dump文件。则可以通过配置参数来开启自动dump。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-XX:HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=./heap</span><br></pre></td></tr></table></figure>
+
+<p>dump文件，可以使用Java自带的工具来打开。Java VisualVM，也可以使用JProfiler打开。</p>
+<p><strong>OOM问题定位</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * -Xms10M -Xmx10M -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=D:/jvm.dump</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">OOMTest</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> List&lt;Object&gt; list = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line"></span><br><span class="line">        List&lt;Object&gt; values = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">        <span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line">        <span class="type">int</span> <span class="variable">j</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">            values.add(<span class="keyword">new</span> <span class="title class_">OOMObject</span>(i++));</span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">OOMObject</span>(j--);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">OOMObject</span> &#123;</span><br><span class="line">        <span class="keyword">private</span> <span class="type">byte</span>[] v = <span class="keyword">new</span> <span class="title class_">byte</span>[<span class="number">5</span> * <span class="number">1024</span>];</span><br><span class="line">        <span class="keyword">private</span> <span class="type">int</span> id;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> <span class="title function_">OOMObject</span><span class="params">(<span class="type">int</span> id)</span> &#123;</span><br><span class="line">            <span class="built_in">this</span>.id = id;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">finalize</span><span class="params">()</span> <span class="keyword">throws</span> Throwable &#123;</span><br><span class="line">            System.out.println(id + <span class="string">&quot;被回收&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>启动后，可以看到，每次进行gc回收时，id为负的总能被回收，而id为正的无法回收。也恰恰说明，一个是强引用，一个是无引用。</p>
+<p>通过堆的dump文件可以看到，实例数差不多的两个对象分别是：byte[] 和 OOMObject对象，其中byte[]数组占用内存达到了88.5%，通过这个简单代码可以快速定位到是什么对象发生了内存泄漏。对于一个大系统来说，要快速定位到发生内存泄漏的位置，还需要借助其他方式。</p>
+<p><img src="/../../images/jvm/1666235823197.jpg"></p>
+<h3 id="Jstack"><a href="#Jstack" class="headerlink" title="Jstack"></a>Jstack</h3><p>jstack可以查看线程使用情况。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">&gt; jstack</span><br><span class="line">Usage:</span><br><span class="line">    jstack [-l] &lt;pid&gt;</span><br><span class="line">        (to connect to running process)</span><br><span class="line">    jstack -F [-m] [-l] &lt;pid&gt;</span><br><span class="line">        (to connect to a hung process)</span><br><span class="line">    jstack [-m] [-l] &lt;executable&gt; &lt;core&gt;</span><br><span class="line">        (to connect to a core file)</span><br><span class="line">    jstack [-m] [-l] [server_id@]&lt;remote server IP or hostname&gt;</span><br><span class="line">        (to connect to a remote debug server)</span><br><span class="line"></span><br><span class="line">Options:</span><br><span class="line">    -F  to force a thread dump. Use when jstack &lt;pid&gt; does not respond (process is hung)</span><br><span class="line">    -m  to <span class="built_in">print</span> both java and native frames (mixed mode)</span><br><span class="line">    -l  long listing. Prints additional information about locks</span><br><span class="line">    -h or -<span class="built_in">help</span> to <span class="built_in">print</span> this <span class="built_in">help</span> message</span><br></pre></td></tr></table></figure>
+
+<p>当发生死锁时，可以通过jstack快速定位。死锁代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">DealLockTest</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">Object</span> <span class="variable">lock1</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Object</span>();</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">Object</span> <span class="variable">lock2</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Object</span>();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">Thread</span>(() -&gt; &#123;</span><br><span class="line">            <span class="keyword">synchronized</span> (lock1) &#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;thread1 begin.&quot;</span>);</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    Thread.sleep(<span class="number">5000</span>);</span><br><span class="line">                &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">                    e.printStackTrace();</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                <span class="keyword">synchronized</span> (lock2) &#123;</span><br><span class="line">                    System.out.println(<span class="string">&quot;thread1 end.&quot;</span>);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">        &#125;).start();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">Thread</span>(() -&gt; &#123;</span><br><span class="line">            <span class="keyword">synchronized</span> (lock2) &#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;thread2 begin.&quot;</span>);</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    Thread.sleep(<span class="number">5000</span>);</span><br><span class="line">                &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">                    e.printStackTrace();</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">synchronized</span> (lock1) &#123;</span><br><span class="line">                    System.out.println(<span class="string">&quot;thread2 end.&quot;</span>);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">        &#125;).start();</span><br><span class="line"></span><br><span class="line">        System.out.println(<span class="string">&quot;main thread end.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用jstack pid可以看到发生死锁的位置。</p>
+<p><img src="/../../images/jvm/20221020142349.png"></p>
+<h3 id="Jstat"><a href="#Jstat" class="headerlink" title="Jstat"></a>Jstat</h3><p>jstat命令可以查看内存各部分的使用量，以及加载类的数量。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">&gt; </span><span class="language-bash">jstat -options</span></span><br><span class="line">-class</span><br><span class="line">-compiler</span><br><span class="line">-gc</span><br><span class="line">-gccapacity</span><br><span class="line">-gccause</span><br><span class="line">-gcmetacapacity</span><br><span class="line">-gcnew</span><br><span class="line">-gcnewcapacity</span><br><span class="line">-gcold</span><br><span class="line">-gcoldcapacity</span><br><span class="line">-gcutil</span><br><span class="line">-printcompilation</span><br></pre></td></tr></table></figure>
+
+<p>使用命令：jstat [-options] [vmid] [间隔时间] [查询次数]</p>
+<p><strong>垃圾回收统计</strong></p>
+<p>jstat -gc pid 最常用，可以评估程序内存及GC压力整体情况。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&gt; jstat -gc 6797</span><br><span class="line"> S0C    S1C    S0U    S1U      EC       EU        OC         OU       MC     MU    CCSC   CCSU   YGC     YGCT    FGC    FGCT     GCT   </span><br><span class="line">19968.0 43008.0  0.0    0.0   358400.0 158067.5  696832.0   24544.7   35496.0 34507.5 4608.0 4343.3      2    0.085   2      0.134    0.220</span><br></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>header</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>S0C</td>
+<td>第一个幸存区的大小，单位是KB</td>
+</tr>
+<tr>
+<td>S1C</td>
+<td>第二个幸存区的大小</td>
+</tr>
+<tr>
+<td>S0U</td>
+<td>第一个幸存区的使用大小</td>
+</tr>
+<tr>
+<td>S1U</td>
+<td>第二个幸存区的使用大小</td>
+</tr>
+<tr>
+<td>EC</td>
+<td>Eden区大小</td>
+</tr>
+<tr>
+<td>EU</td>
+<td>Eden区使用大小</td>
+</tr>
+<tr>
+<td>OC</td>
+<td>老年代大小</td>
+</tr>
+<tr>
+<td>OU</td>
+<td>老年代使用大小</td>
+</tr>
+<tr>
+<td>MC</td>
+<td>元数据空间大小</td>
+</tr>
+<tr>
+<td>MU</td>
+<td>元数据空间使用大小</td>
+</tr>
+<tr>
+<td>CCSC</td>
+<td>压缩类空间大小</td>
+</tr>
+<tr>
+<td>CCSU</td>
+<td>亚索雷空间使用大小</td>
+</tr>
+<tr>
+<td>YGC</td>
+<td>年轻代垃圾回收次数</td>
+</tr>
+<tr>
+<td>YGCT</td>
+<td>年轻代垃圾回收耗时，单位s</td>
+</tr>
+<tr>
+<td>FGC</td>
+<td>老年代垃圾回收次数</td>
+</tr>
+<tr>
+<td>FGCT</td>
+<td>老年代垃圾回收耗时，单位s</td>
+</tr>
+<tr>
+<td>GCT</td>
+<td>垃圾回收总耗时，单位s</td>
+</tr>
+</tbody></table>
+<p>其它的几个options也基本类似。例如：-gcnew 表示年轻代垃圾回收信息，-gcold表示老年代垃圾回收信息。</p>
+<h2 id="JVM运行情况预估"><a href="#JVM运行情况预估" class="headerlink" title="JVM运行情况预估"></a>JVM运行情况预估</h2><p>用jstat -gc pid命令可以计算出一些关键信息，有了这些关键信息就可以采用一些优化思路，来给自己的系统设置一些初始性的jvm参数。例如堆内存大小、年轻代大小、Eden和Survivor比例，老年代大小、大对象阈值等等。</p>
+<ul>
+<li><p>年轻代对象增长速率</p>
+<blockquote>
+<p>可以执行命令 jstat -gc pid 1000 10，每隔1秒打印一条记录，一共打印10条。通过观察EU来估算每秒eden大概新增多少对象，如果系统负载不高，可以把频率1秒换成1分钟。<br>注意：尽量观察不同时间段的对象增长速率。（一般现在的监控看板都会有）</p>
+</blockquote>
+</li>
+<li><p>Young GC的触发频率和每次耗时</p>
+<blockquote>
+<p>知道年轻代增长速率，就可以根据eden区大小推算出young gc大概多久触发一次，young gc的平均耗时也可以通过YGCT&#x2F;YGC得出，根据这些结果就能知道系统大概多久会因为young gc的执行而卡顿多久。</p>
+</blockquote>
+</li>
+<li><p>每次young gc后有多少对象存活和进入老年代</p>
+</li>
+<li><p>Full GC的触发评率和平均耗时</p>
+</li>
+</ul>
+<p>优化思路：尽量让每次Young GC后的存活对象小于Survivor区域的50%，都留在年轻代里。尽量别让对象进入老年代。尽量减少FullGC的频率，避免频繁FullGC对JVM性能的影响。</p>
+<h3 id="调优案例"><a href="#调优案例" class="headerlink" title="调优案例"></a>调优案例</h3><p>环境信息</p>
+<hr>
+<p>机器配置：2核4G</p>
+<p>JVM内存大小：2G</p>
+<p>系统运行时间：7天</p>
+<p>期间发生FullGC次数和耗时：500多次，200多秒</p>
+<p>期间发生YoungGC次数和耗时：1万多次，500多秒</p>
+<p>估算下来，每秒发生3次full gc，每次full gc都在400ms左右。</p>
+<p>JVM参数设置如下：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">‐Xms1536M ‐Xmx1536M ‐Xmn512M ‐Xss256K ‐XX:SurvivorRatio=6 ‐XX:MetaspaceSize=256M -XX:MaxMetaspaceSize=256M ‐XX:+UseParNewGC ‐XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=75 ‐XX:+UseCMSInitiatingOccupancyOnly</span><br></pre></td></tr></table></figure>
+
+
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/jvm/" rel="tag"><i class="fa fa-tag"></i> jvm</a>
+              <a href="/tags/java/" rel="tag"><i class="fa fa-tag"></i> java</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/10/13/jvm/G1%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8/" rel="prev" title="G1垃圾收集器">
+                  <i class="fa fa-chevron-left"></i> G1垃圾收集器
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/11/14/netty/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1%E5%92%8CTCP-IP%E5%8D%8F%E8%AE%AE/" rel="next" title="深入理解网络通信和TCP/IP协议">
+                  深入理解网络通信和TCP/IP协议 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">乡间小鹿</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>
